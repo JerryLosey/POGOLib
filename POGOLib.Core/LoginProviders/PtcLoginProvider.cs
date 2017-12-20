@@ -52,7 +52,7 @@ namespace POGOLib.Official.LoginProviders
             {
                 httpClientHandler.AllowAutoRedirect = false;
                 if (!string.IsNullOrEmpty(_proxyAddress)) {
-                    httpClientHandler.Proxy = new WebProxy(_proxyAddress, true);
+                    httpClientHandler.Proxy = new POGOLib.Official.Extensions.WebProxy(_proxyAddress, true);
                 } 
                 using (var httpClient = new HttpClient(httpClientHandler))
                 {
