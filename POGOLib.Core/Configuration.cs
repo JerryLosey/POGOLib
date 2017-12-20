@@ -1,5 +1,4 @@
-﻿using POGOLib.Official.Util;
-using POGOLib.Official.Util.Hash;
+﻿using POGOLib.Official.Util.Hash;
 using System;
 
 namespace POGOLib.Official

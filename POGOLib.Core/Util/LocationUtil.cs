@@ -1,5 +1,4 @@
-﻿using POGOProtos.Networking.Requests.Messages;
-using System;
+﻿using System;
 
 namespace POGOLib.Official.Util
 {

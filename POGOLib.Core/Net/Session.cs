@@ -15,9 +15,7 @@ using POGOLib.Official.Util.Device;
 using POGOLib.Official.Util.Hash;
 using POGOProtos.Data;
 using POGOProtos.Settings;
-using System.Diagnostics;
 using POGOProtos.Networking.Requests.Messages;
-using POGOProtos.Networking.Responses;
 using POGOLib.Official.Extensions;
 
 namespace POGOLib.Official.Net
