@@ -1,6 +1,4 @@
-﻿using POGOLib.Official.Util.Hash;
-
-namespace POGOLib.Official.Util.Encryption.Legacy
+﻿namespace POGOLib.Official.Util.Encryption.Legacy
 {
     /// <summary>
     ///     This is the legacy <see cref="ShufflesLegacy"/> used by POGOLib in the <see cref="LegacyHasher"/>.

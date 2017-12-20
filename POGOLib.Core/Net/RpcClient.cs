@@ -8,7 +8,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using GeoCoordinatePortable;
 using Google.Protobuf;
-using Newtonsoft.Json;
 using POGOLib.Official.Logging;
 using POGOLib.Official.Util;
 using POGOProtos.Map;
@@ -20,8 +19,6 @@ using POGOProtos.Enums;
 using POGOProtos.Networking.Platform;
 using POGOProtos.Networking.Platform.Requests;
 using POGOProtos.Networking.Platform.Responses;
-using System.Diagnostics;
-using static POGOProtos.Networking.Envelopes.RequestEnvelope.Types;
 using POGOLib.Official.Extensions;
 
 namespace POGOLib.Official.Net
