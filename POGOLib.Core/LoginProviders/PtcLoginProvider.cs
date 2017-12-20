@@ -9,6 +9,7 @@ using POGOLib.Official.Logging;
 using POGOLib.Official.Net.Authentication.Data;
 using System.Net;
 using POGOLib.Official.Extensions;
+using POGOLib.Official.Exceptions;
 
 namespace POGOLib.Official.LoginProviders
 {
@@ -51,10 +52,7 @@ namespace POGOLib.Official.LoginProviders
             {
                 httpClientHandler.AllowAutoRedirect = false;
                 if (!string.IsNullOrEmpty(_proxyAddress)) {
-                     var prxy =new POGOLib.Official.Extensions.WebProxy();
-                     prxy.Address = new Uri(_proxyAddress);
-                     prxy.BypassProxyOnLocal = true;
-                     httpClientHandler.Proxy = prxy;
+                    httpClientHandler.Proxy = new WebProxy(_proxyAddress, true);
                 } 
                 using (var httpClient = new HttpClient(httpClientHandler))
                 {
