@@ -22,13 +22,13 @@ namespace POGOLib.Official.LoginProviders
     {
         private readonly string _username;
         private readonly string _password;
-        private readonly string _proxyAddress;
+        private readonly IWebProxy _proxy;
 
-        public PtcLoginProvider(string username, string password, string proxyAddress = null)
+        public PtcLoginProvider(string username, string password, IWebProxy proxy = null)
         {
             _username = username;
             _password = password;
-            _proxyAddress = proxyAddress;
+            _proxy = proxy;
         }
 
         /// <summary>
@@ -51,8 +51,8 @@ namespace POGOLib.Official.LoginProviders
             using (var httpClientHandler = new HttpClientHandler())
             {
                 httpClientHandler.AllowAutoRedirect = false;
-                if (!string.IsNullOrEmpty(_proxyAddress)) {
-                    httpClientHandler.Proxy = new WebProxy(_proxyAddress, 0);
+                if (_proxy!=null) {
+                    httpClientHandler.Proxy = _proxy;
                 } 
                 using (var httpClient = new HttpClient(httpClientHandler))
                 {

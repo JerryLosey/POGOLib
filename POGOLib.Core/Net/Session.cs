@@ -61,14 +61,8 @@ namespace POGOLib.Official.Net
             {
                 AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
             };
-            if (!string.IsNullOrEmpty(Device.ProxyAddress) && !string.IsNullOrEmpty(Device.ProxyPassWord)) {
-                WebProxy proxy = new WebProxy(Device.ProxyAddress, Device.ProxyPort)
-                {
-                    Username = Device.ProxyUserName,
-                    Password = Device.ProxyPassWord
-                };
-                handler.Proxy = proxy.AsWebProxy();
-                handler.Credentials = proxy.Credentials;
+            if (Device.Proxy!=null) {
+                handler.Proxy = Device.Proxy;
             }
             HttpClient = new HttpClient(handler);
             
