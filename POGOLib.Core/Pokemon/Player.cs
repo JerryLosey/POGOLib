@@ -53,7 +53,7 @@ namespace POGOLib.Official.Pokemon
         /// <summary>
         ///     Gets the <see cref="PlayerLocale" /> of the <see cref="Player" />
         /// </summary>
-        public GetPlayerMessage.Types.PlayerLocale PlayerLocale { get; private set; }
+        internal GetPlayerMessage.Types.PlayerLocale PlayerLocale { get; private set; }
  
         /// <summary>
         ///     Gets the <see cref="Banned" /> of the <see cref="Player" />

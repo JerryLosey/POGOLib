@@ -17,6 +17,7 @@ using POGOProtos.Data;
 using POGOProtos.Settings;
 using POGOProtos.Networking.Requests.Messages;
 using POGOLib.Official.Extensions;
+using POGOProtos.Networking.Responses;
 
 namespace POGOLib.Official.Net
 {
@@ -61,7 +62,7 @@ namespace POGOLib.Official.Net
                 AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
             };
             if (!string.IsNullOrEmpty(Device.ProxyAddress)) {
-                handler.Proxy = new POGOLib.Official.Extensions.WebProxy(Device.ProxyAddress, true);
+                handler.Proxy = new WebProxy(Device.ProxyAddress, 0);
             }
             HttpClient = new HttpClient(handler);
             
@@ -279,11 +280,26 @@ namespace POGOLib.Official.Net
             CaptchaReceived?.Invoke(this, new CaptchaEventArgs(url));
         }
 
+        internal void OnHatchedEggsReceived(GetHatchedEggsResponse getHatchedEggsResponse)
+        {
+            HatchedEggsReceived?.Invoke(this, new GetHatchedEggsResponse(getHatchedEggsResponse));
+        }
+
+        internal void OnCheckAwardedBadgesReceived(CheckAwardedBadgesResponse checkAwardedBadgesResponse)
+        {
+            CheckAwardedBadgesReceived?.Invoke(this, new CheckAwardedBadgesResponse(checkAwardedBadgesResponse));
+        }
+
         public event EventHandler<EventArgs> AccessTokenUpdated;
 
         public event EventHandler<EventArgs> InventoryUpdate;
 
         public event EventHandler<EventArgs> MapUpdate;
+
+        public event EventHandler<GetHatchedEggsResponse> HatchedEggsReceived;
+
+        public event EventHandler<CheckAwardedBadgesResponse> CheckAwardedBadgesReceived;
+
 
         /// <summary>
         /// If you have successfully solved the captcha using VerifyChallegenge, 

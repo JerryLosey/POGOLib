@@ -65,9 +65,6 @@ namespace POGOLib.Official.Net
 
         private readonly Semaphore _rpcQueueMutex = new Semaphore(1, 1);
 
-        public event EventHandler<GetHatchedEggsResponse> HatchedEggsReceived;
-        public event EventHandler<CheckAwardedBadgesResponse> CheckAwardedBadgesReceived;
-
         internal RpcClient(Session session)
         {
             _session = session;
@@ -813,7 +810,7 @@ namespace POGOLib.Official.Net
                         var hatchedEggs = GetHatchedEggsResponse.Parser.ParseFrom(bytes);
                         if (hatchedEggs.Success && hatchedEggs.PokemonId.Count > 0)
                         {
-                            HatchedEggsReceived?.Invoke(this, hatchedEggs);
+                            _session.OnHatchedEggsReceived(hatchedEggs);
                         }
                         break;
 
@@ -839,7 +836,7 @@ namespace POGOLib.Official.Net
                         var awardedBadges = CheckAwardedBadgesResponse.Parser.ParseFrom(bytes);
                         if (awardedBadges.Success && awardedBadges.AwardedBadges.Count > 0)
                         {
-                            CheckAwardedBadgesReceived?.Invoke(this, awardedBadges);
+                            _session.OnCheckAwardedBadgesReceived(awardedBadges);
                         }
                         break;
 
