@@ -14,15 +14,15 @@ namespace POGOLib.Official.Extensions
 
         public WebProxy(string proxyAddress, bool v)
         {
-            Address =  new Uri(proxyAddress);
-            BypassProxyOnLocal= v;
+            Address = new Uri(proxyAddress);
+            BypassProxyOnLocal = v;
         }
 
-       public ICredentials Credentials { get; set; }
+        public ICredentials Credentials { get; set; }
 
         public Uri GetProxy(Uri destination)
         {
-             return Address;
+            return Address;
         }
 
         public bool IsBypassed(Uri host)
