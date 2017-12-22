@@ -87,7 +87,6 @@
     <Compile Include="Exceptions\PtcLoginException.cs" />
     <Compile Include="Exceptions\SessionStateException.cs" />
     <Compile Include="Extensions\RandomExtension.cs" />
-    <Compile Include="Extensions\WebProxy.cs" />
     <Compile Include="Logging\Logger.cs" />
     <Compile Include="Logging\LogLevel.cs" />
     <Compile Include="LoginProviders\GoogleLoginProvider.cs" />
