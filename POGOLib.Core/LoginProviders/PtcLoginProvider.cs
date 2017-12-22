@@ -51,7 +51,8 @@ namespace POGOLib.Official.LoginProviders
             using (var httpClientHandler = new HttpClientHandler())
             {
                 httpClientHandler.AllowAutoRedirect = false;
-                if (_proxy!=null) {
+                httpClientHandler.UseProxy = _proxy!=null;
+                if (httpClientHandler.UseProxy) {
                     httpClientHandler.Proxy = _proxy;
                 } 
                 using (var httpClient = new HttpClient(httpClientHandler))

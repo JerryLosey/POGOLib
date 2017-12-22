@@ -61,11 +61,11 @@ namespace POGOLib.Official.Net
             {
                 AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
             };
-            if (Device.Proxy!=null) {
+            handler.UseProxy = Device.Proxy!=null;
+            if (handler.UseProxy) {
                 handler.Proxy = Device.Proxy;
             }
             HttpClient = new HttpClient(handler);
-            
             
             HttpClient.DefaultRequestHeaders.UserAgent.TryParseAdd(Constants.ApiUserAgent);
             HttpClient.DefaultRequestHeaders.ExpectContinue = false;
