@@ -25,6 +25,7 @@ namespace POGOLib.Official.Net
 {
     public class RpcClient : IDisposable
     {
+        const string INITIAL_PTR8 = "4d32f6b70cda8539ab82be5750e009d6d05a48ad";
         /// <summary>
         ///     The authenticated <see cref="Session" />.
         /// </summary>
@@ -45,7 +46,7 @@ namespace POGOLib.Official.Net
         /// </summary>
         private string _requestUrl;
 
-        private string _mapKey;
+        private string _mapKey = INITIAL_PTR8;
 
         private readonly RandomIdGenerator idGenerator = new RandomIdGenerator();
 
@@ -69,7 +70,7 @@ namespace POGOLib.Official.Net
         {
             _session = session;
             _rpcEncryption = new RpcEncryption(session);
-            _mapKey = string.Empty;
+            _mapKey = INITIAL_PTR8;
         }
 
         internal DateTime LastRpcRequest { get; private set; }
