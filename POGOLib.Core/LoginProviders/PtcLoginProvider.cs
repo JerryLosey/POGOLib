@@ -34,12 +34,12 @@ namespace POGOLib.Official.LoginProviders
         /// <summary>
         /// The unique identifier of the <see cref="PtcLoginProvider"/>.
         /// </summary>
-        public string ProviderId => "ptc";
+        public string ProviderId { get { return "ptc";}}
 
         /// <summary>
         /// The unique identifier of the user trying to authenticate using the <see cref="PtcLoginProvider"/>.
         /// </summary>
-        public string UserId => _username;
+        public string UserId { get { return _username;} }
         
 
         /// <summary>
@@ -50,29 +50,51 @@ namespace POGOLib.Official.LoginProviders
         {
             using (var httpClientHandler = new HttpClientHandler())
             {
+                httpClientHandler.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
                 httpClientHandler.AllowAutoRedirect = false;
                 httpClientHandler.UseProxy = _proxy!=null;
-                if (httpClientHandler.UseProxy) {
-                    httpClientHandler.Proxy = _proxy;
-                } 
-                using (var httpClient = new HttpClient(httpClientHandler))
+                httpClientHandler.Proxy = _proxy;
+                httpClientHandler.UseCookies = true;
+                httpClientHandler.CookieContainer = new CookieContainer();
+                using (var httpClient = new HttpClient(httpClientHandler,true))
                 {
-                    httpClient.DefaultRequestHeaders.Accept.TryParseAdd(Constants.Accept);
-                    httpClient.DefaultRequestHeaders.Host = Constants.LoginHostValue;
-                    httpClient.DefaultRequestHeaders.Connection.TryParseAdd(Constants.Connection);
-                    httpClient.DefaultRequestHeaders.UserAgent.TryParseAdd(Constants.LoginUserAgent);
-                    httpClient.DefaultRequestHeaders.AcceptLanguage.TryParseAdd(Constants.AcceptLanguage);
-                    httpClient.DefaultRequestHeaders.AcceptEncoding.TryParseAdd(Constants.AcceptEncoding);
-                    httpClient.DefaultRequestHeaders.TryAddWithoutValidation(Constants.LoginManufactor, Constants.LoginManufactorVersion);
-                    httpClient.Timeout.Add(Constants.TimeOut);
+                    httpClient.DefaultRequestHeaders.Host = "sso.pokemon.com";
+                    httpClient.DefaultRequestHeaders.Connection.TryParseAdd("keep-alive");
+                    httpClient.DefaultRequestHeaders.Accept.TryParseAdd("*/*");
+                    httpClient.DefaultRequestHeaders.UserAgent.TryParseAdd("pokemongo/1 CFNetwork/893.10 Darwin/17.3.0");  // iOS 11.2
+                    //TODO: use selected locale information
+                    httpClient.DefaultRequestHeaders.AcceptLanguage.TryParseAdd("en-US");
+                    httpClient.DefaultRequestHeaders.AcceptEncoding.TryParseAdd("gzip-deflate");
+                    httpClient.DefaultRequestHeaders.TryAddWithoutValidation("X-Unity-Version", "2017.1.2f1"); //"5.5.1f1";//"5.6.1f1";
+                    httpClient.Timeout.Add(new TimeSpan(0, 10, 0));
+                    var logout = await LogOut(httpClient);
                     var loginData = await GetLoginData(httpClient);
-                    var ticket = await PostLogin(httpClient, _username, _password, loginData);
+                    var ticket = await PostLogin(httpClient, _username, _password, loginData, httpClientHandler.CookieContainer);
                     var accessToken = await PostLoginOauth(httpClient, ticket);
                     accessToken.Username = _username;
+                    var profile = await GetProfile(httpClient,accessToken.Token);
                     Logger.Debug("Authenticated through PTC.");
                     return accessToken;
                 }
             }
+        }
+
+        private async Task<string> LogOut(HttpClient httpClient)
+        {
+            var uriBuilder = new UriBuilder("https://sso.pokemon.com/sso/logout");
+            uriBuilder.Port = -1;
+            uriBuilder.Query = await 
+             new FormUrlEncodedContent(new Dictionary<string, string>
+                {
+                    {"service", "https://sso.pokemon.com/sso/oauth2.0/callbackAuthorize" }
+                }).ReadAsStringAsync();
+            var loginDataResponse = await httpClient.GetAsync(uriBuilder.ToString());
+            //if (loginDataResponse.StatusCode ==  HttpStatusCode.OK){
+            uriBuilder = new UriBuilder(loginDataResponse.Headers.Location);
+            var content = await loginDataResponse.Content.ReadAsStringAsync();
+            return content;
+            //}
+            //throw new PtcLoginException("Pokemon Trainer Club gave error(s): '");
         }
 
         /// <summary>
@@ -82,9 +104,22 @@ namespace POGOLib.Official.LoginProviders
         /// <returns><see cref="LoginData" /> for <see cref="PostLogin" />.</returns>
         private async Task<LoginData> GetLoginData(HttpClient httpClient)
         {
-            var loginDataResponse = await httpClient.GetAsync(Constants.LoginUrl);
-            var loginData = JsonConvert.DeserializeObject<LoginData>(await loginDataResponse.Content.ReadAsStringAsync());
-            return loginData;
+            var uriBuilder = new UriBuilder("https://sso.pokemon.com/sso/login");
+            uriBuilder.Port = -1;
+            //TODO: use selected locale information
+            uriBuilder.Query = await 
+             new FormUrlEncodedContent(new Dictionary<string, string>
+                {
+                    {"service", "https://sso.pokemon.com/sso/oauth2.0/callbackAuthorize" },
+                    {"locale",  "en_US"}
+                }).ReadAsStringAsync();
+            var loginDataResponse = await httpClient.GetAsync(uriBuilder.ToString());
+            if (loginDataResponse.StatusCode ==  HttpStatusCode.OK){
+                var content = await loginDataResponse.Content.ReadAsStringAsync();
+                var loginData = JsonConvert.DeserializeObject<LoginData>(content);
+                return loginData;
+            }
+            throw new PtcLoginException("Pokemon Trainer Club gave error(s): '");
         }
 
         /// <summary>
@@ -94,18 +129,32 @@ namespace POGOLib.Official.LoginProviders
         /// <param name="username">The user's PTC username.</param>
         /// <param name="password">The user's PTC password.</param>
         /// <param name="loginData"><see cref="LoginData" /> taken from PTC website using <see cref="GetLoginData" />.</param>
+        /// <param name = "cookieContainer"> containter where the cookies are stored</param>
         /// <returns></returns>
-        private async Task<string> PostLogin(HttpClient httpClient, string username, string password, LoginData loginData)
+        private async Task<string> PostLogin(HttpClient httpClient, string username, string password, LoginData loginData, CookieContainer cookieContainer)
         {
+            var  uriBuilder = new UriBuilder("https://sso.pokemon.com/sso/login");
+            uriBuilder.Port = -1;
+            uriBuilder.Query = await new FormUrlEncodedContent(new Dictionary<string, string> {
+                     {"service", "https://sso.pokemon.com/sso/oauth2.0/callbackAuthorize"} ,
+                     {"locale", "en_US"}
+                    }).ReadAsStringAsync();
             var loginResponse =
-                await httpClient.PostAsync(Constants.LoginUrl, new FormUrlEncodedContent(new Dictionary<string, string>
+                await httpClient.PostAsync(uriBuilder.ToString(), new FormUrlEncodedContent(new Dictionary<string, string>
                 {
                     {"lt", loginData.Lt},
                     {"execution", loginData.Execution},
                     {"_eventId", "submit"},
                     {"username", username},
-                    {"password", password}
+                    {"password", password},
+                    { "locale", "en_US"}
                 }));
+
+            if (loginResponse.StatusCode == HttpStatusCode.Found && loginResponse.Headers.Location!=null){
+                var locationQuery = loginResponse.Headers.Location.Query;
+                var ticketStartPosition = locationQuery.IndexOf("=", StringComparison.Ordinal) + 1;
+                return locationQuery.Substring(ticketStartPosition, locationQuery.Length - ticketStartPosition);
+            }
 
             var loginResponseDataRaw = await loginResponse.Content.ReadAsStringAsync();
             if (!loginResponseDataRaw.Contains("{"))
@@ -117,8 +166,8 @@ namespace POGOLib.Official.LoginProviders
 
             var loginResponseData = JObject.Parse(loginResponseDataRaw);
             var loginResponseErrors = (JArray)loginResponseData["errors"];
-
-            throw new PtcLoginException($"Pokemon Trainer Club gave error(s): '{WebUtility.HtmlDecode(string.Join(",", loginResponseErrors))}'");
+            var parsedErrors = WebUtility.HtmlDecode(string.Join(",", loginResponseErrors));
+            throw new PtcLoginException("Pokemon Trainer Club gave error(s): '"+ parsedErrors+ "'");
         }
 
         /// <summary>
@@ -140,17 +189,42 @@ namespace POGOLib.Official.LoginProviders
                 }));
 
             var loginResponseDataRaw = await loginResponse.Content.ReadAsStringAsync();
+            if (loginResponse.StatusCode == HttpStatusCode.OK){
+                var oAuthData = Regex.Match(loginResponseDataRaw, "access_token=(?<accessToken>.*?)&expires=(?<expires>\\d+)");
+                if (!oAuthData.Success)
+                    throw new PtcLoginException($"Couldn't verify the OAuth login response data '" +loginResponseDataRaw +"'.");
+    
+                return new AccessToken
+                {
+                    Token = oAuthData.Groups["accessToken"].Value,
+                    Expiry = DateTime.UtcNow.AddSeconds(int.Parse(oAuthData.Groups["expires"].Value)),
+                    ProviderID = ProviderId
+                };
+            }
+            var loginResponseData = JObject.Parse(loginResponseDataRaw);
+            var loginResponseErrors = (JArray)loginResponseData["errors"];
+            var parsedErrors = WebUtility.HtmlDecode(string.Join(",", loginResponseErrors));
+            throw new PtcLoginException("Pokemon Trainer Club gave error(s): '"+ parsedErrors+ "'");
+        }
 
-            var oAuthData = Regex.Match(loginResponseDataRaw, "access_token=(?<accessToken>.*?)&expires=(?<expires>\\d+)");
-            if (!oAuthData.Success)
-                throw new PtcLoginException($"Couldn't verify the OAuth login response data '{loginResponseDataRaw}'.");
-
-            return new AccessToken
-            {
-                Token = oAuthData.Groups["accessToken"].Value,
-                Expiry = DateTime.UtcNow.AddSeconds(int.Parse(oAuthData.Groups["expires"].Value)),
-                ProviderID = ProviderId
-            };
+        private async Task<string>  GetProfile(HttpClient httpClient, string token)
+        {
+            var uriBuilder = new UriBuilder("https://sso.pokemon.com/sso/oauth2.0/profil");
+            uriBuilder.Port = -1;
+            //TODO: use selected locale information
+            uriBuilder.Query = await 
+             new FormUrlEncodedContent(new Dictionary<string, string>
+                {
+                    {"access_token", token },
+                    {"client_id", "mobile-app_pokemon-go" },
+                    {"locale",  "en_US"}
+                }).ReadAsStringAsync();
+            var loginDataResponse = await httpClient.GetAsync(uriBuilder.ToString());
+            if (loginDataResponse.StatusCode ==  HttpStatusCode.OK){
+                var content = await loginDataResponse.Content.ReadAsStringAsync();
+                return content;
+            }
+            throw new PtcLoginException("Pokemon Trainer Club gave error(s): '" + loginDataResponse.StatusCode);
         }
     }
 }
