@@ -396,7 +396,7 @@ namespace POGOLib.Official.Net
         ///     <see cref="Request" />.
         /// </summary>
         /// <returns></returns>
-        private IEnumerable<Request> GetDefaultRequests()
+        private IEnumerable<Request> GetDefaultRequests(bool nobuddy , bool noinbox )
         {
             var request = new List<Request>
             {
@@ -446,15 +446,23 @@ namespace POGOLib.Official.Net
                     }.ToByteString()
                 });
             }
-
-            request.Add(new Request
-            {
-                RequestType = RequestType.GetInbox,
-                RequestMessage = new GetInboxMessage
+            if (!nobuddy){
+                request.Add(new Request
                 {
-                    IsHistory = true
-                }.ToByteString() 
-            });
+                    RequestType = RequestType.GetBuddyWalked,
+                    RequestMessage = new GetBuddyWalkedMessage().ToByteString()
+                });
+            }
+            if (!noinbox){
+                request.Add(new Request
+                {
+                    RequestType = RequestType.GetInbox,
+                    RequestMessage = new GetInboxMessage
+                    {
+                        IsHistory = true
+                    }.ToByteString() 
+                });
+            }
 
             //If Incense is active we add this:
             //request.Add(new Request
@@ -476,7 +484,7 @@ namespace POGOLib.Official.Net
         /// <param name="request"></param>
         /// <param name="addDefaultRequests"></param>
         /// <returns></returns>
-        public async Task<RequestEnvelope> GetRequestEnvelopeAsync(IEnumerable<Request> request, bool addDefaultRequests)
+        public async Task<RequestEnvelope> GetRequestEnvelopeAsync(IEnumerable<Request> request, bool addDefaultRequests, bool nobuddy, bool noinbox)
         {
             var requestEnvelope = new RequestEnvelope
             {
@@ -489,7 +497,7 @@ namespace POGOLib.Official.Net
             requestEnvelope.Requests.AddRange(request);
 
             if (addDefaultRequests)
-                requestEnvelope.Requests.AddRange(GetDefaultRequests());
+                requestEnvelope.Requests.AddRange(GetDefaultRequests(nobuddy,noinbox));
 
             if (_session.AccessToken.AuthTicket != null && _session.AccessToken.AuthTicket.ExpireTimestampMs < ((ulong)TimeUtil.GetCurrentTimestampInMilliseconds() - (60000 * 2)))
             {
@@ -546,14 +554,14 @@ namespace POGOLib.Official.Net
             });
         }
 
-        public async Task<ByteString> SendRemoteProcedureCallAsync(Request request, bool addDefaultRequests = true)
+        public async Task<ByteString> SendRemoteProcedureCallAsync(Request request, bool addDefaultRequests = true, bool nobuddy = false, bool noinbox = false)
         {
-            return await SendRemoteProcedureCall(await GetRequestEnvelopeAsync(new[] {request}, addDefaultRequests));
+            return await SendRemoteProcedureCall(await GetRequestEnvelopeAsync(new[] {request}, addDefaultRequests, nobuddy,noinbox));
         }
 
-        public async Task<ByteString> SendRemoteProcedureCallAsync(Request[] request, bool addDefaultRequests = false)
+        public async Task<ByteString> SendRemoteProcedureCallAsync(Request[] request, bool addDefaultRequests = false, bool nobuddy = false, bool noinbox = false)
         {
-            return await SendRemoteProcedureCall(await GetRequestEnvelopeAsync(request, addDefaultRequests));
+            return await SendRemoteProcedureCall(await GetRequestEnvelopeAsync(request, addDefaultRequests, nobuddy,noinbox));
         }
 
         private Task<ByteString> SendRemoteProcedureCall(RequestEnvelope requestEnvelope)
