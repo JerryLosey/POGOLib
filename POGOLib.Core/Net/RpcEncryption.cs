@@ -52,7 +52,7 @@ namespace POGOLib.Official.Net
         }
 
         private long TimestampSinceStartMs => _stopwatch.ElapsedMilliseconds;
-        
+
         /// <summary>
         /// Generates a few random <see cref="LocationFix"/>es to act like a real GPS sensor.
         /// </summary>
@@ -83,7 +83,7 @@ namespace POGOLib.Official.Net
             if (playAroundWindow == 0 && providerCount == 1 && millisecondsPerFix >= timestampSinceStart)
             {
                 // We really need an offset for this one..
-                playAroundWindow = _session.Random.Next(0, (int) timestampSinceStart);
+                playAroundWindow = _session.Random.Next(0, (int)timestampSinceStart);
             }
             else
             {
@@ -95,23 +95,23 @@ namespace POGOLib.Official.Net
             var playAroundWindowPart = playAroundWindow != 0
                 ? playAroundWindow / providerCount
                 : 1;
-            
+
             for (var i = 0; i < providerCount; i++)
             {
                 var timestampSnapshot = baseTimestampSnapshot;
                 // Apply current location fix position.
                 timestampSnapshot += i * millisecondsPerFix;
                 // Apply an offset.
-                timestampSnapshot += _session.Random.Next(0, (int) ((i + 1) * playAroundWindowPart));
-                
+                timestampSnapshot += _session.Random.Next(0, (int)((i + 1) * playAroundWindowPart));
+
                 locationFixes.Add(new LocationFix
                 {
-                    TimestampSnapshot = (ulong) timestampSnapshot,
+                    TimestampSnapshot = (ulong)timestampSnapshot,
                     Latitude = LocationUtil.OffsetLatitudeLongitude(_session.Player.Coordinate.Latitude, _session.Random.Next(100) + 10),
                     Longitude = LocationUtil.OffsetLatitudeLongitude(_session.Player.Coordinate.Longitude, _session.Random.Next(100) + 10),
-                    HorizontalAccuracy = (float) _session.Random.NextDouble(5.0, 25.0),
-                    VerticalAccuracy = (float) _session.Random.NextDouble(5.0, 25.0),
-                    Altitude = (float) _session.Random.NextDouble(10.0, 30.0),
+                    HorizontalAccuracy = (float)_session.Random.NextDouble(5.0, 25.0),
+                    VerticalAccuracy = (float)_session.Random.NextDouble(5.0, 25.0),
+                    Altitude = (float)_session.Random.NextDouble(10.0, 30.0),
                     Provider = "fused",
                     ProviderStatus = 3,
                     LocationType = 1,
@@ -146,7 +146,7 @@ namespace POGOLib.Official.Net
             _session.Player.Coordinate.Altitude = locationFix.Altitude;
 
             requestEnvelope.Accuracy = _session.Player.Coordinate.Altitude; // _session.Player.Coordinate.HorizontalAccuracy;
-            requestEnvelope.MsSinceLastLocationfix = timestampSinceStart - (long) locationFix.TimestampSnapshot;
+            requestEnvelope.MsSinceLastLocationfix = timestampSinceStart - (long)locationFix.TimestampSnapshot;
 
             var signature = new Signature
             {
