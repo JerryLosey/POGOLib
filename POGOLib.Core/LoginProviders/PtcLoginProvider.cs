@@ -209,7 +209,7 @@ namespace POGOLib.Official.LoginProviders
 
         private async Task<string>  GetProfile(HttpClient httpClient, string token)
         {
-            var uriBuilder = new UriBuilder("https://sso.pokemon.com/sso/oauth2.0/profil");
+            var uriBuilder = new UriBuilder("https://sso.pokemon.com/sso/oauth2.0/profile");
             uriBuilder.Port = -1;
             //TODO: use selected locale information
             uriBuilder.Query = await 
