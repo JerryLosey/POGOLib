@@ -142,8 +142,6 @@ namespace POGOLib.Official.Net
 
         private Semaphore ReauthenticateMutex { get; } = new Semaphore(1, 1);
 
-        public bool ManageResources { get; set; } = false;
-
         public Templates Templates { get; private set; }
 
         public async Task<bool> StartupAsync()

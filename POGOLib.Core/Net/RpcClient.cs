@@ -116,7 +116,7 @@ namespace POGOLib.Official.Net
         /// Sends all requests which the (ios-)client sends on startup
         /// </summary>
         // NOTE: this is the new login process in the real app, after of 0.45 API
-        internal async Task<bool> StartupAsync()
+        internal async Task<bool> StartupAsync(bool manageResources = false)
         {
             //await EmptyRequest(); // TODO: review this call, is failing
             // and the real app does it to receive the "OkRpcUrlInResponse"
@@ -166,7 +166,7 @@ namespace POGOLib.Official.Net
 
             await DownloadRemoteConfig();
 
-            if (_session.ManageResources)
+            if (manageResources)
             {
                 await GetAssetDigest();
                 await DownloadItemTemplates();
