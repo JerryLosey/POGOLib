@@ -22,6 +22,7 @@ using POGOProtos.Networking.Platform;
 using POGOProtos.Networking.Platform.Requests;
 using POGOProtos.Networking.Platform.Responses;
 using POGOLib.Official.Extensions;
+using PokemonGoGUI.POGOLib.Core.Util;
 
 namespace POGOLib.Official.Net
 {
@@ -946,14 +947,16 @@ namespace POGOLib.Official.Net
             var timestamp = 0ul;
             var templates = new List<DownloadItemTemplatesResponse.Types.ItemTemplate>();
             var local_config_version = new DownloadRemoteConfigVersionResponse();
-            if (File.Exists(_session.Device.DeviceInfo.DeviceId + "_lcv.json")) {
-                    var strPokeSettings = File.ReadAllText(_session.Device.DeviceInfo.DeviceId + "_lcv.json");
+            var lcvFilename = "data/"+_session.Device.DeviceInfo.DeviceId + "_lcv.json";
+            if (File.Exists(lcvFilename)) {
+                    var strPokeSettings = FileUtil.ReadAllText(lcvFilename);
                      local_config_version = JsonConvert.DeserializeObject<DownloadRemoteConfigVersionResponse>(strPokeSettings);
             }
-            if ( File.Exists(_session.Device.DeviceInfo.DeviceId + "_ps.json") 
+            var psFilename = "data/"+_session.Device.DeviceInfo.DeviceId + "_ps.json";
+            if ( File.Exists(psFilename) 
                 && (_session.Templates.ItemTemplatesTimestampMs <= local_config_version.ItemTemplatesTimestampMs) 
                ) {
-                    var strPokeSettings = File.ReadAllText(_session.Device.DeviceInfo.DeviceId + "_ps.json");
+                    var strPokeSettings = FileUtil.ReadAllText(psFilename);
                     _session.Templates.ItemTemplates = JsonConvert.DeserializeObject<List<DownloadItemTemplatesResponse.Types.ItemTemplate>>(strPokeSettings);
                     return;
             }
@@ -980,9 +983,11 @@ namespace POGOLib.Official.Net
 
             }while (pageOffset != 0);
 
-            File.WriteAllText(_session.Device.DeviceInfo.DeviceId + "_ps.json",JsonConvert.SerializeObject(templates));
+            if (!Directory.Exists("data"))
+                Directory.CreateDirectory("data");
+            FileUtil.WriteAllText(psFilename,JsonConvert.SerializeObject(templates));
             local_config_version.ItemTemplatesTimestampMs = timestamp;
-            File.WriteAllText(_session.Device.DeviceInfo.DeviceId + "_lcv.json",JsonConvert.SerializeObject(local_config_version));
+            FileUtil.WriteAllText(lcvFilename,JsonConvert.SerializeObject(local_config_version));
 
             _session.Templates.ItemTemplates = templates;
         }
@@ -999,14 +1004,16 @@ namespace POGOLib.Official.Net
             var timestamp = 0ul;
             var digests = new List<POGOProtos.Data.AssetDigestEntry>();
             var local_config_version = new DownloadRemoteConfigVersionResponse();
-            if (File.Exists(_session.Device.DeviceInfo.DeviceId + "_lcv.json")) {
-                    var strPokeSettings = File.ReadAllText(_session.Device.DeviceInfo.DeviceId + "_lcv.json");
+            var lcvFilename = "data/"+_session.Device.DeviceInfo.DeviceId + "_lcv.json";
+            if (File.Exists(lcvFilename)) {
+                    var strPokeSettings = FileUtil.ReadAllText(lcvFilename);
                      local_config_version = JsonConvert.DeserializeObject<DownloadRemoteConfigVersionResponse>(strPokeSettings);
             }
-            if ( File.Exists(_session.Device.DeviceInfo.DeviceId + "_ad.json") 
+            var adFilename = "data/"+_session.Device.DeviceInfo.DeviceId + "_ad.json";
+            if ( File.Exists(adFilename) 
                 && (_session.Templates.AssetDigestTimestampMs <= local_config_version.AssetDigestTimestampMs) 
                ) {
-                    var strJson = File.ReadAllText(_session.Device.DeviceInfo.DeviceId + "_ad.json");
+                    var strJson = FileUtil.ReadAllText(adFilename);
                     try {
                         _session.Templates.AssetDigests = JsonConvert.DeserializeObject<List<POGOProtos.Data.AssetDigestEntry>>(strJson,
                           new JsonSerializerSettings
@@ -1046,9 +1053,11 @@ namespace POGOLib.Official.Net
 
             }while (pageOffset != 0);
 
-            File.WriteAllText(_session.Device.DeviceInfo.DeviceId + "_ad.json",JsonConvert.SerializeObject(digests));
+            if (!Directory.Exists("data"))
+                Directory.CreateDirectory("data");
+            FileUtil.WriteAllText(adFilename,JsonConvert.SerializeObject(digests));
             local_config_version.AssetDigestTimestampMs = timestamp;
-            File.WriteAllText(_session.Device.DeviceInfo.DeviceId + "_lcv.json",JsonConvert.SerializeObject(local_config_version));
+            FileUtil.WriteAllText(lcvFilename,JsonConvert.SerializeObject(local_config_version));
 
             _session.Templates.AssetDigests = digests;
         }
@@ -1065,8 +1074,9 @@ namespace POGOLib.Official.Net
         public async Task GetDownloadURLs(string [] toCheck)
         {
             var dowloadUrls = new List<POGOProtos.Data.DownloadUrlEntry>();
-            if ( File.Exists(_session.Device.DeviceInfo.DeviceId + "_du.json") ) {
-                    var strJson = File.ReadAllText(_session.Device.DeviceInfo.DeviceId + "_du.json");
+            var duFilename = "data/"+_session.Device.DeviceInfo.DeviceId + "_du.json";
+            if ( File.Exists(duFilename) ) {
+                    var strJson = FileUtil.ReadAllText(duFilename);
                     _session.Templates.AssetDigests = JsonConvert.DeserializeObject<List<POGOProtos.Data.AssetDigestEntry>>(strJson);
                     return;
             }
@@ -1095,7 +1105,9 @@ namespace POGOLib.Official.Net
             dowloadUrls.AddRange(getDownloadUrlsResponse.DownloadUrls);
 
 
-            File.WriteAllText(_session.Device.DeviceInfo.DeviceId + "_du.json",JsonConvert.SerializeObject(dowloadUrls));
+            if (!Directory.Exists("data"))
+                Directory.CreateDirectory("data");
+            FileUtil.WriteAllText(duFilename,JsonConvert.SerializeObject(dowloadUrls));
 
             _session.Templates.DownloadUrls = dowloadUrls;
         }
