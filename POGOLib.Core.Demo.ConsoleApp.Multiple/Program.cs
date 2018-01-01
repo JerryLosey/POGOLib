@@ -138,7 +138,7 @@ namespace POGOLib.Official.Demo.ConsoleApp.Multiple
                                          }.ToByteString()
                                      };
 
-                                     await session.RpcClient.GetRequestEnvelopeAsync(new[] { request }, true);
+                                     await session.RpcClient.GetRequestEnvelopeAsync(new[] { request }, true, true, true);
                                  });
                             }
                         }
