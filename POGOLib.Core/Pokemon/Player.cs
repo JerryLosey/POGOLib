@@ -64,6 +64,8 @@ namespace POGOLib.Official.Pokemon
         ///     Gets the <see cref="Warn" /> of the <see cref="Player" />
         /// </summary>
         public bool Warn { get; set; }
+        
+        public int BuddyCandy { get; set; }
 
         public PlayerData Data { get; set; }
 

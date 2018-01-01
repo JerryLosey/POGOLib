@@ -889,6 +889,10 @@ namespace POGOLib.Official.Net
                             _session.OnCaptchaReceived(checkChallenge.ChallengeUrl);
                         }
                         break;
+                    case RequestType.GetBuddyWalked:
+                        var getBuddyWalked = GetBuddyWalkedResponse.Parser.ParseFrom(bytes);
+                        _session.Player.BuddyCandy = getBuddyWalked.CandyEarnedCount;
+                        break;
                 }
             }
         }
