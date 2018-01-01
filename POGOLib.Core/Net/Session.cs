@@ -74,6 +74,7 @@ namespace POGOLib.Official.Net
             LoginProvider = loginProvider;
             Player = new Player(this, geoCoordinate, playerLocale);
             Map = new Map(this);
+            Templates = new Templates(this);
             RpcClient = new RpcClient(this);
             _heartbeat = new HeartbeatDispatcher(this);
         }
@@ -138,6 +139,9 @@ namespace POGOLib.Official.Net
         internal string GlobalSettingsHash { get; set; } = string.Empty;
 
         private Semaphore ReauthenticateMutex { get; } = new Semaphore(1, 1);
+        
+        
+        public Templates Templates { get; private set; }
 
         public async Task<bool> StartupAsync()
         {

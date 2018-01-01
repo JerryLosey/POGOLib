@@ -1,5 +1,23 @@
-﻿namespace POGOLib.Official.Pokemon
+﻿using System.Collections.Generic;
+using POGOLib.Official.Net;
+using POGOProtos.Networking.Responses;
+namespace POGOLib.Official.Pokemon
 {
+    public class Templates
+    {
+        private readonly Session _session;
+        public int BuddyCandy { get; set; }
+        
+        public ulong AssetDigestTimestampMs { get; set; }
+        public ulong ItemTemplatesTimestampMs { get; set; }
+        public List<DownloadItemTemplatesResponse.Types.ItemTemplate> ItemTemplates { get; set; }
+        public List<POGOProtos.Data.AssetDigestEntry> AssetDigests { get; set; }
+
+        internal Templates (Session session)
+        {
+            _session = session;
+        }
+    }
     /*
     public class Templates
     {

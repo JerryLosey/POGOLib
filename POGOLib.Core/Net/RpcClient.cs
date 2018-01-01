@@ -918,51 +918,81 @@ namespace POGOLib.Official.Net
 
         public async Task DownloadRemoteConfig()
         {
-            ByteString response = null;
             var msg = new DownloadRemoteConfigVersionMessage();
             msg.Platform = GetPlatform();
             msg.DeviceManufacturer = _session.Device.DeviceInfo.HardwareManufacturer;
             msg.DeviceModel = _session.Device.DeviceInfo.DeviceModel;
-            msg.Locale = "";
+            msg.Locale = _session.Player.PlayerLocale.Language + "_" + _session.Player.PlayerLocale.Country;
             msg.AppVersion =  Configuration.Hasher.AppVersion;
-            var requests = new Request[6]; // [6]
-            requests[0] = new Request {
+            var request = new Request {
                 RequestType = RequestType.DownloadRemoteConfigVersion,
                 RequestMessage = msg.ToByteString()};
-            requests[1] = new Request
+            var response = await SendRemoteProcedureCallAsync(request, true, true , true);
+            var downloadRemoteConfigVersionMessage = DownloadRemoteConfigVersionResponse.Parser.ParseFrom(response);
+            _session.Templates.AssetDigestTimestampMs = downloadRemoteConfigVersionMessage.AssetDigestTimestampMs;
+            _session.Templates.ItemTemplatesTimestampMs =downloadRemoteConfigVersionMessage.ItemTemplatesTimestampMs;
+        }
+
+        public async Task DownloadItemTemplates()
+        {
+            var pageOffset = 0;
+            var timestamp = 0ul;
+            var templates = new List<DownloadItemTemplatesResponse.Types.ItemTemplate>();
+            do{
+                var response = await SendRemoteProcedureCallAsync(new Request
                 {
-                    RequestType = RequestType.CheckChallenge,
-                    RequestMessage = new CheckChallengeMessage().ToByteString()
-                };
-            requests[2] = new Request
+                    RequestType = RequestType.DownloadItemTemplates,
+                    RequestMessage = new DownloadItemTemplatesMessage
+                    {
+                        PageOffset = pageOffset,
+                        Paginate = true,
+                        PageTimestamp = timestamp
+                    }.ToByteString()
+                }, true, true, true);
+
+
+                var downloadItemTemplatesResponse = DownloadItemTemplatesResponse.Parser.ParseFrom(response);
+                
+                pageOffset = downloadItemTemplatesResponse.PageOffset;
+                timestamp = downloadItemTemplatesResponse.TimestampMs;
+                
+                templates.AddRange(downloadItemTemplatesResponse.ItemTemplates);
+
+            }while (pageOffset != 0);
+            _session.Templates.ItemTemplates = templates;
+        }
+        public async Task GetAssetDigest()
+        {
+            var pageOffset = 0;
+            var timestamp = 0ul;
+            var digests = new List<POGOProtos.Data.AssetDigestEntry>();
+            do{
+                var response = await SendRemoteProcedureCallAsync(new Request
                 {
-                    RequestType = RequestType.GetHatchedEggs,
-                    RequestMessage = new GetHatchedEggsMessage().ToByteString()
-                };
-            requests[3] = new Request
-            {
-                RequestType = RequestType.GetHoloInventory,
-                RequestMessage =  new GetHoloInventoryMessage
-            {
-                LastTimestampMs = _session.Player.Inventory.LastInventoryTimestampMs
-            }.ToByteString()
-            };
-            requests[4] =  new Request
-                {
-                    RequestType = RequestType.CheckAwardedBadges,
-                    RequestMessage = new CheckAwardedBadgesMessage().ToByteString()
-                };
-            requests[5] = new Request
-            {
-                RequestType = RequestType.DownloadSettings,
-                RequestMessage =  new DownloadSettingsMessage
-            {
-                Hash = _session.GlobalSettingsHash
-            }.ToByteString()
-            };
-            
-            response = await SendRemoteProcedureCallAsync(requests).ConfigureAwait(false);
-            //return DownloadRemoteConfigVersionMessage.Parser.ParseFrom(response);
+                    RequestType = RequestType.GetAssetDigest,
+                    RequestMessage = new GetAssetDigestMessage
+                    {
+                        Platform = GetPlatform(), 
+                        DeviceManufacturer = _session.Device.DeviceInfo.HardwareManufacturer,
+                        DeviceModel = _session.Device.DeviceInfo.DeviceModel,
+                        Locale = _session.Player.PlayerLocale.Language + "_" + _session.Player.PlayerLocale.Country,
+                        AppVersion = Configuration.Hasher.AppVersion,
+                        PageOffset = pageOffset,
+                        Paginate = true,
+                        PageTimestamp = timestamp
+                    }.ToByteString()
+                }, true, true, true);
+
+
+                var getAssetDigestResponse =GetAssetDigestResponse.Parser.ParseFrom(response);
+                
+                pageOffset = getAssetDigestResponse.PageOffset;
+                timestamp = getAssetDigestResponse.TimestampMs;
+
+                digests.AddRange(getAssetDigestResponse.Digest);
+
+            }while (pageOffset != 0);
+            _session.Templates.AssetDigests = digests;
         }
     }
 }
