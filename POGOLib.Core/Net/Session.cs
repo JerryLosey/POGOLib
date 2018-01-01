@@ -51,7 +51,7 @@ namespace POGOLib.Official.Net
         {
             if (!ValidLoginProviders.Contains(loginProvider.ProviderId))
             {
-                throw new ArgumentException("LoginProvider ID must be one of the following: " +string.Join(", ", ValidLoginProviders));
+                throw new ArgumentException("LoginProvider ID must be one of the following: " + string.Join(", ", ValidLoginProviders));
             }
 
             State = SessionState.Stopped;
@@ -61,12 +61,13 @@ namespace POGOLib.Official.Net
             {
                 AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
             };
-            handler.UseProxy = Device.Proxy!=null;
-            if (handler.UseProxy) {
+            handler.UseProxy = Device.Proxy != null;
+            if (handler.UseProxy)
+            {
                 handler.Proxy = Device.Proxy;
             }
             HttpClient = new HttpClient(handler);
-            
+
             HttpClient.DefaultRequestHeaders.UserAgent.TryParseAdd(Constants.ApiUserAgent);
             HttpClient.DefaultRequestHeaders.ExpectContinue = false;
 
@@ -140,9 +141,9 @@ namespace POGOLib.Official.Net
 
         private Semaphore ReauthenticateMutex { get; } = new Semaphore(1, 1);
 
-        public bool ManageResources {get; set; } = false;
-        
-        
+        public bool ManageResources { get; set; } = false;
+
+
         public Templates Templates { get; private set; }
 
         public async Task<bool> StartupAsync()
@@ -176,7 +177,7 @@ namespace POGOLib.Official.Net
             {
                 throw new SessionStateException("The session is not running.");
             }
-            
+
             State = SessionState.Paused;
 
             _heartbeat.StopDispatcher();
@@ -188,7 +189,7 @@ namespace POGOLib.Official.Net
             {
                 throw new SessionStateException("The session is not paused.");
             }
-            
+
             State = SessionState.Resumed;
 
             await _heartbeat.StartDispatcherAsync();
@@ -202,7 +203,7 @@ namespace POGOLib.Official.Net
             }
 
             State = SessionState.Stopped;
-            
+
             _heartbeat.StopDispatcher();
         }
 
@@ -224,7 +225,7 @@ namespace POGOLib.Official.Net
                 var result = Configuration.Hasher.PokemonVersion.CompareTo(pogoVersion);
                 if (result < 0)
                 {
-                    throw new HashVersionMismatchException("The version of the " + nameof(Configuration.Hasher) +"("+ Configuration.Hasher.PokemonVersion+") does not match the minimal API version of PokemonGo ({pogoVersion}). Set 'Configuration.IgnoreHashVersion' to true if you want to disable the version check.");
+                    throw new HashVersionMismatchException("The version of the " + nameof(Configuration.Hasher) + "(" + Configuration.Hasher.PokemonVersion + ") does not match the minimal API version of PokemonGo ({pogoVersion}). Set 'Configuration.IgnoreHashVersion' to true if you want to disable the version check.");
                 }
             }
         }
@@ -253,7 +254,7 @@ namespace POGOLib.Official.Net
                     {
                         if (accessToken == null)
                         {
-                            var sleepSeconds = Math.Min(60, ++tries*5);
+                            var sleepSeconds = Math.Min(60, ++tries * 5);
                             Logger.Error($"Reauthentication failed, trying again in {sleepSeconds} seconds.");
                             await Task.Delay(TimeSpan.FromMilliseconds(sleepSeconds * 1000));
                         }

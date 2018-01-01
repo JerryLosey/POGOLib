@@ -6,14 +6,14 @@ namespace POGOLib.Official.Pokemon
     public class Templates
     {
         private readonly Session _session;
-        
+
         public ulong AssetDigestTimestampMs { get; set; }
         public ulong ItemTemplatesTimestampMs { get; set; }
         public List<DownloadItemTemplatesResponse.Types.ItemTemplate> ItemTemplates { get; set; }
         public List<POGOProtos.Data.AssetDigestEntry> AssetDigests { get; set; }
         public List<POGOProtos.Data.DownloadUrlEntry> DownloadUrls { get; set; }
 
-        internal Templates (Session session)
+        internal Templates(Session session)
         {
             _session = session;
         }

@@ -13,7 +13,7 @@ namespace POGOLib.Official.Pokemon
         internal Player(Session session, GeoCoordinate coordinate, GetPlayerMessage.Types.PlayerLocale playerLocale)
         {
             Coordinate = coordinate;
-            PlayerLocale = playerLocale ?? new GetPlayerMessage.Types.PlayerLocale { Country = "US", Language = "en", Timezone = "America/New_York" } ;
+            PlayerLocale = playerLocale ?? new GetPlayerMessage.Types.PlayerLocale { Country = "US", Language = "en", Timezone = "America/New_York" };
             Inventory = new Inventory(session);
             session.InventoryUpdate += InventoryOnUpdate;
         }
@@ -27,7 +27,8 @@ namespace POGOLib.Official.Pokemon
         /// <summary>
         ///     Gets the <see cref="Player" /> his current latitude.
         /// </summary>
-        public double Latitude {
+        public double Latitude
+        {
             get { return Coordinate.Latitude; }
             set { Coordinate.Latitude = value; }
         }
@@ -35,7 +36,8 @@ namespace POGOLib.Official.Pokemon
         /// <summary>
         ///     Gets the <see cref="Player" /> his current longitude.
         /// </summary>
-        public double Longitude {
+        public double Longitude
+        {
             get { return Coordinate.Longitude; }
             set { Coordinate.Longitude = value; }
         }
@@ -54,7 +56,7 @@ namespace POGOLib.Official.Pokemon
         ///     Gets the <see cref="PlayerLocale" /> of the <see cref="Player" />
         /// </summary>
         internal GetPlayerMessage.Types.PlayerLocale PlayerLocale { get; private set; }
- 
+
         /// <summary>
         ///     Gets the <see cref="Banned" /> of the <see cref="Player" />
         /// </summary>
@@ -64,7 +66,7 @@ namespace POGOLib.Official.Pokemon
         ///     Gets the <see cref="Warn" /> of the <see cref="Player" />
         /// </summary>
         public bool Warn { get; set; }
-        
+
         public int BuddyCandy { get; set; }
 
         public PlayerData Data { get; set; }
@@ -79,7 +81,7 @@ namespace POGOLib.Official.Pokemon
         {
             Coordinate = new GeoCoordinate(latitude, longitude, altitude);
         }
- 
+
         /// <summary>
         ///     Sets the <see cref="GeoCoordinate" /> of the <see cref="Player" />.
         /// </summary>
