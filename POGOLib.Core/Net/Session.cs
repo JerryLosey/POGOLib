@@ -139,6 +139,8 @@ namespace POGOLib.Official.Net
         internal string GlobalSettingsHash { get; set; } = string.Empty;
 
         private Semaphore ReauthenticateMutex { get; } = new Semaphore(1, 1);
+
+        public bool ManageResources {get; set; } = false;
         
         
         public Templates Templates { get; private set; }

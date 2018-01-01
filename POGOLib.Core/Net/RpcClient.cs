@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
@@ -8,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using GeoCoordinatePortable;
 using Google.Protobuf;
+using Newtonsoft.Json;
 using POGOLib.Official.Logging;
 using POGOLib.Official.Util;
 using POGOProtos.Map;
@@ -163,9 +165,12 @@ namespace POGOLib.Official.Net
             _session.Player.Warn = playerResponse.Warn;
 
             await DownloadRemoteConfig();
-            //await GetAssetDigest();
-            //await DownloadItemTemplates();
-            //await GetDownloadUrls();
+            
+            if (_session.ManageResources){
+                await GetAssetDigest();
+                await DownloadItemTemplates();
+                await GetDownloadURLs();
+            }
 
             return true;
         }
@@ -483,6 +488,8 @@ namespace POGOLib.Official.Net
         /// </summary>
         /// <param name="request"></param>
         /// <param name="addDefaultRequests"></param>
+        /// <param name = "nobuddy"></param>
+        /// <param name = "noinbox"></param>
         /// <returns></returns>
         public async Task<RequestEnvelope> GetRequestEnvelopeAsync(IEnumerable<Request> request, bool addDefaultRequests, bool nobuddy, bool noinbox)
         {
@@ -491,7 +498,7 @@ namespace POGOLib.Official.Net
                 StatusCode = 2,
                 RequestId = GetNextRequestId(),
                 Latitude = _session.Player.Coordinate.Latitude,
-                Longitude = _session.Player.Coordinate.Longitude                
+                Longitude = _session.Player.Coordinate.Longitude
             };
 
             requestEnvelope.Requests.AddRange(request);
@@ -621,8 +628,8 @@ namespace POGOLib.Official.Net
 
                 using (var requestData = new ByteArrayContent(requestEnvelope.ToByteArray()))
                 {
-                    Logger.Debug($"Sending RPC Request: '{string.Join(", ", requestEnvelope.Requests.Select(x => x.RequestType))}'");
-                    Logger.Debug($"=> Platform Request: '{string.Join(", ", requestEnvelope.PlatformRequests.Select(x => x.Type))}'");
+                    Logger.Debug("Sending RPC Request: '"+string.Join(", ", requestEnvelope.Requests.Select(x => x.RequestType))+"'");
+                    Logger.Debug("=> Platform Request: '"+string.Join(", ", requestEnvelope.PlatformRequests.Select(x => x.Type))+"'");
 
                     using (var response = await _session.HttpClient.PostAsync(_requestUrl ?? Constants.ApiUrl, requestData))
                     {
@@ -938,6 +945,18 @@ namespace POGOLib.Official.Net
             var pageOffset = 0;
             var timestamp = 0ul;
             var templates = new List<DownloadItemTemplatesResponse.Types.ItemTemplate>();
+            var local_config_version = new DownloadRemoteConfigVersionResponse();
+            if (File.Exists(_session.Device.DeviceInfo.DeviceId + "_lcv.json")) {
+                    var strPokeSettings = File.ReadAllText(_session.Device.DeviceInfo.DeviceId + "_lcv.json");
+                     local_config_version = JsonConvert.DeserializeObject<DownloadRemoteConfigVersionResponse>(strPokeSettings);
+            }
+            if ( File.Exists(_session.Device.DeviceInfo.DeviceId + "_ps.json") 
+                && (_session.Templates.ItemTemplatesTimestampMs <= local_config_version.ItemTemplatesTimestampMs) 
+               ) {
+                    var strPokeSettings = File.ReadAllText(_session.Device.DeviceInfo.DeviceId + "_ps.json");
+                    _session.Templates.ItemTemplates = JsonConvert.DeserializeObject<List<DownloadItemTemplatesResponse.Types.ItemTemplate>>(strPokeSettings);
+                    return;
+            }
             do{
                 var response = await SendRemoteProcedureCallAsync(new Request
                 {
@@ -956,16 +975,50 @@ namespace POGOLib.Official.Net
                 pageOffset = downloadItemTemplatesResponse.PageOffset;
                 timestamp = downloadItemTemplatesResponse.TimestampMs;
                 
+                
                 templates.AddRange(downloadItemTemplatesResponse.ItemTemplates);
 
             }while (pageOffset != 0);
+
+            File.WriteAllText(_session.Device.DeviceInfo.DeviceId + "_ps.json",JsonConvert.SerializeObject(templates));
+            local_config_version.ItemTemplatesTimestampMs = timestamp;
+            File.WriteAllText(_session.Device.DeviceInfo.DeviceId + "_lcv.json",JsonConvert.SerializeObject(local_config_version));
+
             _session.Templates.ItemTemplates = templates;
         }
+
+        void HandleEventHandler(object sender, Newtonsoft.Json.Serialization.ErrorEventArgs errorArgs)
+        {
+             var currentError = errorArgs.ErrorContext.Error.Message;
+             errorArgs.ErrorContext.Handled = true;
+        }
+
         public async Task GetAssetDigest()
         {
             var pageOffset = 0;
             var timestamp = 0ul;
             var digests = new List<POGOProtos.Data.AssetDigestEntry>();
+            var local_config_version = new DownloadRemoteConfigVersionResponse();
+            if (File.Exists(_session.Device.DeviceInfo.DeviceId + "_lcv.json")) {
+                    var strPokeSettings = File.ReadAllText(_session.Device.DeviceInfo.DeviceId + "_lcv.json");
+                     local_config_version = JsonConvert.DeserializeObject<DownloadRemoteConfigVersionResponse>(strPokeSettings);
+            }
+            if ( File.Exists(_session.Device.DeviceInfo.DeviceId + "_ad.json") 
+                && (_session.Templates.AssetDigestTimestampMs <= local_config_version.AssetDigestTimestampMs) 
+               ) {
+                    var strJson = File.ReadAllText(_session.Device.DeviceInfo.DeviceId + "_ad.json");
+                    try {
+                        _session.Templates.AssetDigests = JsonConvert.DeserializeObject<List<POGOProtos.Data.AssetDigestEntry>>(strJson,
+                          new JsonSerializerSettings
+                           { 
+                              Error = HandleEventHandler
+                              
+                          });
+                    } catch (Exception ex1) {
+                        Logger.Debug(ex1.ToString());
+                    }
+                    return;
+            }
             do{
                 var response = await SendRemoteProcedureCallAsync(new Request
                 {
@@ -992,7 +1045,59 @@ namespace POGOLib.Official.Net
                 digests.AddRange(getAssetDigestResponse.Digest);
 
             }while (pageOffset != 0);
+
+            File.WriteAllText(_session.Device.DeviceInfo.DeviceId + "_ad.json",JsonConvert.SerializeObject(digests));
+            local_config_version.AssetDigestTimestampMs = timestamp;
+            File.WriteAllText(_session.Device.DeviceInfo.DeviceId + "_lcv.json",JsonConvert.SerializeObject(local_config_version));
+
             _session.Templates.AssetDigests = digests;
+        }
+        public async Task GetDownloadURLs()
+        {
+            var toCheck = new [] {
+                "i18n_general",
+                "i18n_moves",
+                "i18n_items"
+            };
+
+            await GetDownloadURLs(toCheck);
+        }
+        public async Task GetDownloadURLs(string [] toCheck)
+        {
+            var dowloadUrls = new List<POGOProtos.Data.DownloadUrlEntry>();
+            if ( File.Exists(_session.Device.DeviceInfo.DeviceId + "_du.json") ) {
+                    var strJson = File.ReadAllText(_session.Device.DeviceInfo.DeviceId + "_du.json");
+                    _session.Templates.AssetDigests = JsonConvert.DeserializeObject<List<POGOProtos.Data.AssetDigestEntry>>(strJson);
+                    return;
+            }
+            var toDownload = new List<string>();
+
+            foreach (var check in toCheck) {
+                var digest = _session.Templates.AssetDigests.FirstOrDefault(x => x.BundleName == check);
+                var dowloadUrl = dowloadUrls?.FirstOrDefault(x => x.AssetId?.Split('/')[0] == digest.AssetId);
+                if(digest == null || dowloadUrl ==null || digest.Version.ToString() != dowloadUrl.AssetId.Split('/')[1]){
+                    toDownload.Add(digest.AssetId);
+                }
+            }
+
+            var response = await SendRemoteProcedureCallAsync(new Request
+            {
+                RequestType = RequestType.GetDownloadUrls,
+                RequestMessage = new GetDownloadUrlsMessage
+                {
+                    AssetId ={toDownload.ToArray()}
+                }.ToByteString()
+            }, true, true, true);
+
+
+            var getDownloadUrlsResponse =GetDownloadUrlsResponse.Parser.ParseFrom(response);
+            
+            dowloadUrls.AddRange(getDownloadUrlsResponse.DownloadUrls);
+
+
+            File.WriteAllText(_session.Device.DeviceInfo.DeviceId + "_du.json",JsonConvert.SerializeObject(dowloadUrls));
+
+            _session.Templates.DownloadUrls = dowloadUrls;
         }
     }
 }
