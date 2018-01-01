@@ -12,7 +12,7 @@ namespace POGOLib.Official.Pokemon
         public List<DownloadItemTemplatesResponse.Types.ItemTemplate> ItemTemplates { get; set; }
         public List<POGOProtos.Data.AssetDigestEntry> AssetDigests { get; set; }
         public List<POGOProtos.Data.DownloadUrlEntry> DownloadUrls { get; set; }
-        public DownloadRemoteConfigVersionResponse RemoteConfigVersion { get; set; }
+        public DownloadRemoteConfigVersionResponse LocalConfigVersion { get; set; }
 
         internal Templates(Session session)
         {

@@ -945,7 +945,7 @@ namespace POGOLib.Official.Net
             var downloadRemoteConfigVersionMessage = DownloadRemoteConfigVersionResponse.Parser.ParseFrom(response);
             _session.Templates.AssetDigestTimestampMs = downloadRemoteConfigVersionMessage.AssetDigestTimestampMs;
             _session.Templates.ItemTemplatesTimestampMs = downloadRemoteConfigVersionMessage.ItemTemplatesTimestampMs;
-            _session.Templates.RemoteConfigVersion = downloadRemoteConfigVersionMessage;
+            _session.Templates.LocalConfigVersion = downloadRemoteConfigVersionMessage;
             _session.OnRemoteConfigReceived(downloadRemoteConfigVersionMessage);
         }
 
@@ -956,8 +956,8 @@ namespace POGOLib.Official.Net
             var templates = new List<DownloadItemTemplatesResponse.Types.ItemTemplate>();
             var local_config_version = new DownloadRemoteConfigVersionResponse();
 
-            if (_session.Templates.RemoteConfigVersion != null)
-               local_config_version = _session.Templates.RemoteConfigVersion;
+            if (_session.Templates.LocalConfigVersion != null)
+               local_config_version = _session.Templates.LocalConfigVersion;
             
             if ( _session.Templates.ItemTemplates != null 
                 && (_session.Templates.ItemTemplatesTimestampMs <= local_config_version.ItemTemplatesTimestampMs) 
@@ -1005,8 +1005,8 @@ namespace POGOLib.Official.Net
             var digests = new List<POGOProtos.Data.AssetDigestEntry>();
             var local_config_version = new DownloadRemoteConfigVersionResponse();
 
-            if (_session.Templates.RemoteConfigVersion != null)
-                local_config_version = _session.Templates.RemoteConfigVersion;
+            if (_session.Templates.LocalConfigVersion != null)
+                local_config_version = _session.Templates.LocalConfigVersion;
 
             if (_session.Templates.AssetDigests != null 
                 && (_session.Templates.AssetDigestTimestampMs <= local_config_version.AssetDigestTimestampMs) 
