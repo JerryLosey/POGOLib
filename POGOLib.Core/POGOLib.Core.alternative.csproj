@@ -118,7 +118,6 @@
     <Compile Include="Util\Encryption\Legacy\ShufflesLegacy.cs" />
     <Compile Include="Util\Encryption\PokeHash\PCryptPokeHash.cs" />
     <Compile Include="Util\Encryption\PokeHash\TwoFish.cs" />
-    <Compile Include="Util\FileUtil.cs" />
     <Compile Include="Util\Hash\HashData.cs" />
     <Compile Include="Util\Hash\HashVersionMismatchException.cs" />
     <Compile Include="Util\Hash\IHasher.cs" />

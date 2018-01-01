@@ -1,11 +1,14 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using POGOLib.Official.Net;
+using POGOLib.Official.Util.Data;
 using POGOProtos.Networking.Responses;
 namespace POGOLib.Official.Pokemon
 {
     public class Templates
     {
         private readonly Session _session;
+        public readonly  Dictionary<string, FileStream> Data = new Dictionary<string, FileStream>();
 
         public ulong AssetDigestTimestampMs { get; set; }
         public ulong ItemTemplatesTimestampMs { get; set; }

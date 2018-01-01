@@ -22,7 +22,6 @@ using POGOProtos.Networking.Platform;
 using POGOProtos.Networking.Platform.Requests;
 using POGOProtos.Networking.Platform.Responses;
 using POGOLib.Official.Extensions;
-using PokemonGoGUI.POGOLib.Core.Util;
 
 namespace POGOLib.Official.Net
 {
@@ -954,17 +953,19 @@ namespace POGOLib.Official.Net
             var timestamp = 0ul;
             var templates = new List<DownloadItemTemplatesResponse.Types.ItemTemplate>();
             var local_config_version = new DownloadRemoteConfigVersionResponse();
-            var lcvFilename = "data/"+_session.Device.DeviceInfo.DeviceId + "_lcv.json";
-            if (File.Exists(lcvFilename)) {
-                    var strPokeSettings = FileUtil.ReadAllText(lcvFilename);
-                     local_config_version = JsonConvert.DeserializeObject<DownloadRemoteConfigVersionResponse>(strPokeSettings);
+            if ( _session.Templates.Data["LocalConfigVersion"]!=null ) {
+                var sr = new StreamReader(_session.Templates.Data["LocalConfigVersion"]);
+                var strJson = sr.ReadToEnd();
+                sr.Dispose();
+                local_config_version = JsonConvert.DeserializeObject<DownloadRemoteConfigVersionResponse>(strJson);
             }
-            var psFilename = "data/"+_session.Device.DeviceInfo.DeviceId + "_ps.json";
-            if ( File.Exists(psFilename) 
+            if ( (_session.Templates.Data["DownloadItemTemplates"]!=null )
                 && (_session.Templates.ItemTemplatesTimestampMs <= local_config_version.ItemTemplatesTimestampMs) 
                ) {
-                    var strPokeSettings = FileUtil.ReadAllText(psFilename);
-                    _session.Templates.ItemTemplates = JsonConvert.DeserializeObject<List<DownloadItemTemplatesResponse.Types.ItemTemplate>>(strPokeSettings);
+                    var sr = new StreamReader(_session.Templates.Data["DownloadItemTemplates"]);
+                    var strJson = sr.ReadToEnd();
+                    sr.Dispose();
+                    _session.Templates.ItemTemplates = JsonConvert.DeserializeObject<List<DownloadItemTemplatesResponse.Types.ItemTemplate>>(strJson);
                     return;
             }
             do
@@ -991,11 +992,14 @@ namespace POGOLib.Official.Net
 
             } while (pageOffset != 0);
 
-            if (!Directory.Exists("data"))
-                Directory.CreateDirectory("data");
-            FileUtil.WriteAllText(psFilename,JsonConvert.SerializeObject(templates));
+            var sw = new StreamWriter(_session.Templates.Data["GetAssetDigest"]);
+            sw.WriteLine(JsonConvert.SerializeObject(templates));
+            sw.Dispose();
+
             local_config_version.ItemTemplatesTimestampMs = timestamp;
-            FileUtil.WriteAllText(lcvFilename,JsonConvert.SerializeObject(local_config_version));
+            sw = new StreamWriter(_session.Templates.Data["LocalConfigVersion"]);
+            sw.WriteLine(JsonConvert.SerializeObject(local_config_version));
+            sw.Dispose();
 
             _session.Templates.ItemTemplates = templates;
         }
@@ -1012,16 +1016,18 @@ namespace POGOLib.Official.Net
             var timestamp = 0ul;
             var digests = new List<POGOProtos.Data.AssetDigestEntry>();
             var local_config_version = new DownloadRemoteConfigVersionResponse();
-            var lcvFilename = "data/"+_session.Device.DeviceInfo.DeviceId + "_lcv.json";
-            if (File.Exists(lcvFilename)) {
-                    var strPokeSettings = FileUtil.ReadAllText(lcvFilename);
-                     local_config_version = JsonConvert.DeserializeObject<DownloadRemoteConfigVersionResponse>(strPokeSettings);
+            if ( _session.Templates.Data["LocalConfigVersion"]!=null ) {
+                var sr = new StreamReader(_session.Templates.Data["LocalConfigVersion"]);
+                var strJson = sr.ReadToEnd();
+                sr.Dispose();
+                local_config_version = JsonConvert.DeserializeObject<DownloadRemoteConfigVersionResponse>(strJson);
             }
-            var adFilename = "data/"+_session.Device.DeviceInfo.DeviceId + "_ad.json";
-            if ( File.Exists(adFilename) 
+            if ( (_session.Templates.Data["GetAssetDigest"]!=null )
                 && (_session.Templates.AssetDigestTimestampMs <= local_config_version.AssetDigestTimestampMs) 
                ) {
-                    var strJson = FileUtil.ReadAllText(adFilename);
+                    var sr = new StreamReader(_session.Templates.Data["GetAssetDigest"]);
+                    var strJson = sr.ReadToEnd();
+                    sr.Dispose();
                     try {
                         _session.Templates.AssetDigests = JsonConvert.DeserializeObject<List<POGOProtos.Data.AssetDigestEntry>>(strJson,
                           new JsonSerializerSettings
@@ -1062,11 +1068,14 @@ namespace POGOLib.Official.Net
 
             } while (pageOffset != 0);
 
-            if (!Directory.Exists("data"))
-                Directory.CreateDirectory("data");
-            FileUtil.WriteAllText(adFilename,JsonConvert.SerializeObject(digests));
+            var sw = new StreamWriter(_session.Templates.Data["GetAssetDigest"]);
+            sw.WriteLine(JsonConvert.SerializeObject(digests));
+            sw.Dispose();
+
             local_config_version.AssetDigestTimestampMs = timestamp;
-            FileUtil.WriteAllText(lcvFilename,JsonConvert.SerializeObject(local_config_version));
+            sw = new StreamWriter(_session.Templates.Data["LocalConfigVersion"]);
+            sw.WriteLine(JsonConvert.SerializeObject(local_config_version));
+            sw.Dispose();
 
             _session.Templates.AssetDigests = digests;
         }
@@ -1083,11 +1092,12 @@ namespace POGOLib.Official.Net
         public async Task GetDownloadURLs(string[] toCheck)
         {
             var dowloadUrls = new List<POGOProtos.Data.DownloadUrlEntry>();
-            var duFilename = "data/"+_session.Device.DeviceInfo.DeviceId + "_du.json";
-            if ( File.Exists(duFilename) ) {
-                    var strJson = FileUtil.ReadAllText(duFilename);
-                    _session.Templates.AssetDigests = JsonConvert.DeserializeObject<List<POGOProtos.Data.AssetDigestEntry>>(strJson);
-                    return;
+            if ( _session.Templates.Data["GetDownloadURLs"]!=null ) {
+                var sr = new StreamReader(_session.Templates.Data["GetDownloadURLs"]);
+                var strJson = sr.ReadToEnd();
+                sr.Dispose();
+                _session.Templates.AssetDigests = JsonConvert.DeserializeObject<List<POGOProtos.Data.AssetDigestEntry>>(strJson);
+                return;
             }
             var toDownload = new List<string>();
 
@@ -1116,9 +1126,10 @@ namespace POGOLib.Official.Net
             dowloadUrls.AddRange(getDownloadUrlsResponse.DownloadUrls);
 
 
-            if (!Directory.Exists("data"))
-                Directory.CreateDirectory("data");
-            FileUtil.WriteAllText(duFilename,JsonConvert.SerializeObject(dowloadUrls));
+            var sw = new StreamWriter(_session.Templates.Data["GetDownloadURLs"]);
+            sw.WriteLine(JsonConvert.SerializeObject(dowloadUrls));
+            sw.Dispose();
+
 
             _session.Templates.DownloadUrls = dowloadUrls;
         }
