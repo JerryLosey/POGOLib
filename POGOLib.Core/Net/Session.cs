@@ -18,6 +18,7 @@ using POGOProtos.Settings;
 using POGOProtos.Networking.Requests.Messages;
 using POGOLib.Official.Extensions;
 using POGOProtos.Networking.Responses;
+using System.Collections.Generic;
 
 namespace POGOLib.Official.Net
 {
@@ -142,7 +143,6 @@ namespace POGOLib.Official.Net
         private Semaphore ReauthenticateMutex { get; } = new Semaphore(1, 1);
 
         public bool ManageResources { get; set; } = false;
-
 
         public Templates Templates { get; private set; }
 
@@ -296,6 +296,34 @@ namespace POGOLib.Official.Net
         {
             CheckAwardedBadgesReceived?.Invoke(this, new CheckAwardedBadgesResponse(checkAwardedBadgesResponse));
         }
+
+        internal void OnItemTemplatesReceived(List<DownloadItemTemplatesResponse.Types.ItemTemplate> itemtemplates)
+        {
+            ItemTemplatesUpdated?.Invoke(this, new List<DownloadItemTemplatesResponse.Types.ItemTemplate>(itemtemplates));
+        }
+
+        internal void OnAssetDigestReceived(List<POGOProtos.Data.AssetDigestEntry> assetdigest)
+        {
+            AssetDigestUpdated?.Invoke(this, new List<POGOProtos.Data.AssetDigestEntry>(assetdigest));
+        }
+
+        internal void OnUrlsReceived(List<POGOProtos.Data.DownloadUrlEntry> urls)
+        {
+            UrlsUpdated?.Invoke(this, new List<POGOProtos.Data.DownloadUrlEntry>(urls));
+        }
+
+        internal void OnRemoteConfigReceived(DownloadRemoteConfigVersionResponse downloadRemoteConfigVersionResponse)
+        {
+            RemoteConfigUpdated?.Invoke(this, new DownloadRemoteConfigVersionResponse(downloadRemoteConfigVersionResponse));
+        }
+
+        public event EventHandler<DownloadRemoteConfigVersionResponse> RemoteConfigUpdated;
+
+        public event EventHandler<List<POGOProtos.Data.DownloadUrlEntry>> UrlsUpdated;
+
+        public event EventHandler<List<POGOProtos.Data.AssetDigestEntry>> AssetDigestUpdated;
+
+        public event EventHandler<List<DownloadItemTemplatesResponse.Types.ItemTemplate>> ItemTemplatesUpdated;
 
         public event EventHandler<EventArgs> AccessTokenUpdated;
 
