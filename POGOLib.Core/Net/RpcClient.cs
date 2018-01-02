@@ -116,7 +116,7 @@ namespace POGOLib.Official.Net
         /// Sends all requests which the (ios-)client sends on startup
         /// </summary>
         // NOTE: this is the new login process in the real app, after of 0.45 API
-        internal async Task<bool> StartupAsync(bool manageResources = false)
+        internal async Task<bool> StartupAsync(bool manageResources)
         {
             //await EmptyRequest(); // TODO: review this call, is failing
             // and the real app does it to receive the "OkRpcUrlInResponse"
@@ -494,7 +494,7 @@ namespace POGOLib.Official.Net
         /// <param name = "nobuddy"></param>
         /// <param name = "noinbox"></param>
         /// <returns></returns>
-        public async Task<RequestEnvelope> GetRequestEnvelopeAsync(IEnumerable<Request> request, bool addDefaultRequests, bool nobuddy, bool noinbox)
+        public async Task<RequestEnvelope> GetRequestEnvelopeAsync(IEnumerable<Request> request, bool addDefaultRequests, bool nobuddy = false, bool noinbox = false)
         {
             var requestEnvelope = new RequestEnvelope
             {
@@ -946,7 +946,7 @@ namespace POGOLib.Official.Net
             _session.Templates.AssetDigestTimestampMs = downloadRemoteConfigVersionMessage.AssetDigestTimestampMs;
             _session.Templates.ItemTemplatesTimestampMs = downloadRemoteConfigVersionMessage.ItemTemplatesTimestampMs;
             _session.Templates.LocalConfigVersion = downloadRemoteConfigVersionMessage;
-            _session.OnRemoteConfigReceived(downloadRemoteConfigVersionMessage);
+            _session.OnLocalConfigReceived(downloadRemoteConfigVersionMessage);
         }
 
         public async Task DownloadItemTemplates()

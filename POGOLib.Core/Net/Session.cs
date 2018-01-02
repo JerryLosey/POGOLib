@@ -144,7 +144,7 @@ namespace POGOLib.Official.Net
 
         public Templates Templates { get; private set; }
 
-        public async Task<bool> StartupAsync()
+        public async Task<bool> StartupAsync(bool manageResources = false)
         {
             if (State != SessionState.Stopped)
             {
@@ -158,7 +158,7 @@ namespace POGOLib.Official.Net
 
             State = SessionState.Started;
 
-            if (!await RpcClient.StartupAsync())
+            if (!await RpcClient.StartupAsync(manageResources))
             {
                 return false;
             }
@@ -310,12 +310,12 @@ namespace POGOLib.Official.Net
             UrlsUpdated?.Invoke(this, new List<POGOProtos.Data.DownloadUrlEntry>(urls));
         }
 
-        internal void OnRemoteConfigReceived(DownloadRemoteConfigVersionResponse downloadRemoteConfigVersionResponse)
+        internal void OnLocalConfigReceived(DownloadRemoteConfigVersionResponse downloadRemoteConfigVersionResponse)
         {
-            RemoteConfigUpdated?.Invoke(this, new DownloadRemoteConfigVersionResponse(downloadRemoteConfigVersionResponse));
+            LocalConfigUpdated?.Invoke(this, new DownloadRemoteConfigVersionResponse(downloadRemoteConfigVersionResponse));
         }
 
-        public event EventHandler<DownloadRemoteConfigVersionResponse> RemoteConfigUpdated;
+        public event EventHandler<DownloadRemoteConfigVersionResponse> LocalConfigUpdated;
 
         public event EventHandler<List<POGOProtos.Data.DownloadUrlEntry>> UrlsUpdated;
 
