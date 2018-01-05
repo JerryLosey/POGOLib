@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Google.Protobuf;
 using POGOLib.Official.Extensions;
 using POGOLib.Official.Util;
+using POGOLib.Official.Util.Hash;
 using POGOProtos.Networking.Envelopes;
 using POGOProtos.Networking.Platform;
 using POGOProtos.Networking.Platform.Requests;
@@ -192,7 +193,14 @@ namespace POGOLib.Official.Net
                 .Concat(BitConverter.GetBytes(_session.Player.Coordinate.Altitude).Reverse()).ToArray();
 
             var requestsBytes = requestEnvelope.Requests.Select(x => x.ToByteArray()).ToArray();
-            var hashData = await Configuration.Hasher.GetHashDataAsync(requestEnvelope, signature, locationBytes, requestsBytes, serializedTicket);
+
+            HashData hashData;
+            try {
+                hashData = await Configuration.Hasher.GetHashDataAsync(requestEnvelope, signature, locationBytes, requestsBytes, serializedTicket);
+            } catch (Exception ex1) {
+                _session.logger.Error(ex1.Message);
+                throw ex1;
+            }
 
             if (hashData == null)
                 throw new PokeHashException("Missed Hash Data");

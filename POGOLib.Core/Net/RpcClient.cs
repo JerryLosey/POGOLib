@@ -153,11 +153,11 @@ namespace POGOLib.Official.Net
 
             if (playerResponse.Warn)
             {
-                Logger.Warn("This account is flagged.");
+                _session.logger.Warn("This account is flagged.");
             }
             if (playerResponse.Banned)
             {
-                Logger.Error("This account is banned.");
+                _session.logger.Error("This account is banned.");
             }
 
             _session.Player.Data = playerResponse.PlayerData;
@@ -339,13 +339,13 @@ namespace POGOLib.Official.Net
                     var pokemonNearby = mapObjects.MapCells.SelectMany(c => c.NearbyPokemons).Count();
                     var pokemonCount = pokemonCatchable + pokemonWild + pokemonNearby;
 
-                    Logger.Debug($"Received '{mapObjects.MapCells.Count}' map cells.");
-                    Logger.Debug($"Received '{pokemonCount}' pokemons. Catchable({pokemonCatchable}) Wild({pokemonWild}) Nearby({pokemonNearby})");
-                    Logger.Debug($"Received '{mapObjects.MapCells.SelectMany(c => c.Forts).Count()}' forts.");
+                    _session.logger.Debug($"Received '{mapObjects.MapCells.Count}' map cells.");
+                    _session.logger.Debug($"Received '{pokemonCount}' pokemons. Catchable({pokemonCatchable}) Wild({pokemonWild}) Nearby({pokemonNearby})");
+                    _session.logger.Debug($"Received '{mapObjects.MapCells.SelectMany(c => c.Forts).Count()}' forts.");
 
                     if (mapObjects.MapCells.Count == 0)
                     {
-                        Logger.Error("We received 0 map cells, are your GPS coordinates correct?");
+                        _session.logger.Error("We received 0 map cells, are your GPS coordinates correct?");
                         return;
                     }
 
@@ -353,7 +353,7 @@ namespace POGOLib.Official.Net
                 }
                 else
                 {
-                    Logger.Error($"GetMapObjects status is: '{mapObjects.Status}'.");
+                    _session.logger.Error($"GetMapObjects status is: '{mapObjects.Status}'.");
                 }
             }
             else if (_session.State != SessionState.Paused)
@@ -616,14 +616,14 @@ namespace POGOLib.Official.Net
                 switch (_session.State)
                 {
                     case SessionState.Stopped:
-                        Logger.Error("We tried to send a request while the session was stopped.");
+                        _session.logger.Error("We tried to send a request while the session was stopped.");
                         return null;
 
                     case SessionState.Paused:
                         var requests = requestEnvelope.Requests.Select(x => x.RequestType).ToList();
                         if (requests.Count != 1 || requests[0] != RequestType.VerifyChallenge)
                         {
-                            Logger.Error("We tried to send a request while the session was paused. The only request allowed is VerifyChallenge.");
+                            _session.logger.Error("We tried to send a request while the session was paused. The only request allowed is VerifyChallenge.");
                             return null;
                         }
                         break;
@@ -631,14 +631,14 @@ namespace POGOLib.Official.Net
 
                 using (var requestData = new ByteArrayContent(requestEnvelope.ToByteArray()))
                 {
-                    Logger.Debug("Sending RPC Request: '" + string.Join(", ", requestEnvelope.Requests.Select(x => x.RequestType)) + "'");
-                    Logger.Debug("=> Platform Request: '" + string.Join(", ", requestEnvelope.PlatformRequests.Select(x => x.Type)) + "'");
+                    _session.logger.Debug("Sending RPC Request: '" + string.Join(", ", requestEnvelope.Requests.Select(x => x.RequestType)) + "'");
+                    _session.logger.Debug("=> Platform Request: '" + string.Join(", ", requestEnvelope.PlatformRequests.Select(x => x.Type)) + "'");
 
                     using (var response = await _session.HttpClient.PostAsync(_requestUrl ?? Constants.ApiUrl, requestData))
                     {
                         if (!response.IsSuccessStatusCode)
                         {
-                            Logger.Debug(await response.Content.ReadAsStringAsync());
+                            _session.logger.Debug(await response.Content.ReadAsStringAsync());
 
                             throw new Exception("Received a non-success HTTP status code from the RPC server, see the console for the response.");
                         }
@@ -678,7 +678,7 @@ namespace POGOLib.Official.Net
                             // The login token is invalid.
                             // TODO: Make cleaner to reduce duplicate code with the GetRequestEnvelopeAsync method.
                             case ResponseEnvelope.Types.StatusCode.InvalidAuthToken:
-                                Logger.Debug("Received StatusCode 102, reauthenticating.");
+                                _session.logger.Debug("Received StatusCode 102, reauthenticating.");
 
                                 _session.AccessToken.Expire();
                                 await _session.Reauthenticate();
@@ -707,7 +707,7 @@ namespace POGOLib.Official.Net
                                 return await PerformRemoteProcedureCallAsync(requestEnvelope);
 
                             default:
-                                Logger.Info($"Unknown status code: {responseEnvelope.StatusCode}");
+                                _session.logger.Info($"Unknown status code: {responseEnvelope.StatusCode}");
                                 break;
                         }
 
@@ -722,7 +722,7 @@ namespace POGOLib.Official.Net
                         if (responseEnvelope.AuthTicket != null)
                         {
                             _session.AccessToken.AuthTicket = responseEnvelope.AuthTicket;
-                            Logger.Debug("Received a new AuthTicket from Pokemon!");
+                            _session.logger.Debug("Received a new AuthTicket from Pokemon!");
                         }
 
                         var mapPlatform = responseEnvelope.PlatformReturns.FirstOrDefault(x => x.Type == PlatformRequestType.UnknownPtr8);
@@ -738,7 +738,7 @@ namespace POGOLib.Official.Net
             }
             catch (Exception e)
             {
-                Logger.Error($"SendRemoteProcedureCall exception: {e}");
+                _session.logger.Error($"SendRemoteProcedureCall exception: {e}");
                 return null;
             }
         }
@@ -887,7 +887,7 @@ namespace POGOLib.Official.Net
                         }
                         else
                         {
-                            Logger.Debug($"DownloadSettingsResponse.Error: '{downloadSettings.Error}'");
+                            _session.logger.Debug($"DownloadSettingsResponse.Error: '{downloadSettings.Error}'");
                         }
                         break;
 
@@ -923,11 +923,14 @@ namespace POGOLib.Official.Net
         private async Task EmptyRequest()
         {
             var response = await SendRemoteProcedureCallAsync(new[] { new Request() });
-            Logger.Debug("EmptyRequest response:" + response.ToString());
+            _session.logger.Debug("EmptyRequest response:" + response.ToString());
         }
 
         public async Task DownloadRemoteConfig()
         {
+            if  (_session.Player.Warn){
+                return;
+            }
             var msg = new DownloadRemoteConfigVersionMessage
             {
                 Platform = GetPlatform(),

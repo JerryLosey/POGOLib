@@ -58,7 +58,6 @@ namespace POGOLib.Official.LoginProviders
             {
                 throw new GoogleLoginException("Auth token was missing from oauth login response.");
             }
-            Logger.Debug("Authenticated through Google.");
             return new AccessToken
             {
                 Username = _username,

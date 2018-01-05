@@ -28,9 +28,11 @@ namespace POGOLib.Official.Net.Authentication
             if (accessToken.IsExpired)
                 throw new Exception("AccessToken is expired.");
 
-            Logger.Debug("Authenticated from cache.");
 
-            return new Session(loginProvider, accessToken, new GeoCoordinate(initialLatitude, initialLongitude), deviceWrapper, playerLocale);
+            var session = new Session(loginProvider, accessToken, new GeoCoordinate(initialLatitude, initialLongitude), deviceWrapper, playerLocale);
+            session.logger.Debug("Authenticated from cache.");
+            return session;
+
         }
 
         /// <summary>
@@ -43,7 +45,12 @@ namespace POGOLib.Official.Net.Authentication
         /// <returns></returns>
         public static async Task<Session> GetSession(ILoginProvider loginProvider, double initialLatitude, double initialLongitude, DeviceWrapper deviceWrapper = null, GetPlayerMessage.Types.PlayerLocale playerLocale = null)
         {
-            return new Session(loginProvider, await loginProvider.GetAccessToken(), new GeoCoordinate(initialLatitude, initialLongitude), deviceWrapper, playerLocale);
+            var session = new Session(loginProvider, await loginProvider.GetAccessToken(), new GeoCoordinate(initialLatitude, initialLongitude), deviceWrapper, playerLocale);
+            if (loginProvider is PtcLoginProvider)
+                session.logger.Debug("Authenticated through PTC.");
+            else
+                session.logger.Debug("Authenticated through Google.");
+            return session;
         }
 
         /// <summary>
@@ -61,8 +68,9 @@ namespace POGOLib.Official.Net.Authentication
                 throw new ArgumentException($"{nameof(accessToken)} is expired.");
             }
 
-            Logger.Debug("Authenticated from cache.");
-            return new Session(loginProvider, accessToken, coordinate, deviceWrapper, playerLocale);
+            var session = new Session(loginProvider, accessToken, coordinate, deviceWrapper, playerLocale);
+            session.logger.Debug("Authenticated from cache.");
+            return session;
         }
 
         /// <summary>
@@ -71,10 +79,16 @@ namespace POGOLib.Official.Net.Authentication
         /// <param name="loginProvider">The OAuth provider you use to authenticate.</param>
         /// <param name="coordinate">The initial coordinate you will spawn at after logging into PokémonGo.</param>
         /// <param name="deviceWrapper">The <see cref="DeviceWrapper"/> used by the <see cref="Session"/>, keep null if you want a randomly generated <see cref="DeviceWrapper"/>.</param>
+        /// <param name = "playerLocale"></param>
         /// <returns></returns>
         public static async Task<Session> GetSession(ILoginProvider loginProvider, GeoCoordinate coordinate, DeviceWrapper deviceWrapper = null, GetPlayerMessage.Types.PlayerLocale playerLocale = null)
         {
-            return new Session(loginProvider, await loginProvider.GetAccessToken(), coordinate, deviceWrapper, playerLocale);
+            var session = new Session(loginProvider, await loginProvider.GetAccessToken() , coordinate, deviceWrapper, playerLocale);
+            if (loginProvider is PtcLoginProvider)
+                session.logger.Debug("Authenticated through PTC.");
+            else
+                session.logger.Debug("Authenticated through Google.");
+            return session;
         }
     }
 }

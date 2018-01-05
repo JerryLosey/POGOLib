@@ -146,7 +146,7 @@ namespace POGOLib.Official.Util.Hash
                     // TODO: Find a better way to let the developer know of these issues.
                     message = $"[PokeHash]: {message}";
 
-                    Logger.Error(message);
+                    //Logger.Error(message);
 
                     if (retryCount == 10)
                         throw new Exception(message);

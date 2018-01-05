@@ -73,7 +73,6 @@ namespace POGOLib.Official.LoginProviders
                     var accessToken = await PostLoginOauth(httpClient, ticket);
                     accessToken.Username = _username;
                     var profile = await GetProfile(httpClient,accessToken.Token);
-                    Logger.Debug("Authenticated through PTC.");
                     return accessToken;
                 }
             }

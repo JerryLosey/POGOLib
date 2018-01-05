@@ -39,6 +39,8 @@ namespace POGOLib.Official.Net
         /// Only use this if you know what you are doing.
         /// </summary>
         public readonly RpcClient RpcClient;
+        
+        public readonly Logger logger;
 
         private static readonly string[] ValidLoginProviders = { "ptc", "google" };
 
@@ -79,6 +81,7 @@ namespace POGOLib.Official.Net
             Templates = new Templates(this);
             RpcClient = new RpcClient(this);
             _heartbeat = new HeartbeatDispatcher(this);
+            logger = new Logger();
         }
 
         /// <summary>
@@ -91,7 +94,7 @@ namespace POGOLib.Official.Net
             {
                 _state = value;
 
-                Logger.Debug($"Session state was set to {_state}.");
+                logger.Debug($"Session state was set to {_state}.");
             }
         }
 
@@ -243,17 +246,21 @@ namespace POGOLib.Official.Net
                     try
                     {
                         accessToken = await LoginProvider.GetAccessToken();
+                        if (LoginProvider is PtcLoginProvider)
+                            logger.Debug("Authenticated through PTC.");
+                        else
+                            logger.Debug("Authenticated through Google.");
                     }
                     catch (Exception exception)
                     {
-                        Logger.Error($"Reauthenticate exception was catched: {exception}");
+                        logger.Error($"Reauthenticate exception was catched: {exception}");
                     }
                     finally
                     {
                         if (accessToken == null)
                         {
                             var sleepSeconds = Math.Min(60, ++tries * 5);
-                            Logger.Error($"Reauthentication failed, trying again in {sleepSeconds} seconds.");
+                            logger.Error($"Reauthentication failed, trying again in {sleepSeconds} seconds.");
                             await Task.Delay(TimeSpan.FromMilliseconds(sleepSeconds * 1000));
                         }
                     }
