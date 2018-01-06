@@ -45,65 +45,35 @@ namespace POGOLib.Official.Util.Device
             new[] {"iPhone9,3", "iPhone", "MN9T2"}
         };
 
-        private static readonly string[] OsVersions = {
-            /*
-             * not more supported
-            "8.1.1",
-            "8.1.2",
-            "8.1.3",
-            "8.2",
-            "8.3",
-            "8.4",
-            "8.4.1",*/
-            "9.0",
-            "9.0.1",
-            "9.0.2",
-            "9.1",
-            "9.2",
-            "9.2.1",
-            "9.3",
-//            "9.3.1",
-            "9.3.2",
-//            "9.3.3",
-//            "9.3.4"
-            "10.3.3",
-            "11.1.0",
-            "11.2.0"
+        private static readonly string[][] OsVars = { 
+            new [] {"9.0", "CFNetwork/758.0.2 Darwin/15.0.0"},
+            new [] {"9.0.1","CFNetwork/758.0.2 Darwin/15.0.0"},
+                new [] {"9.0.2","CFNetwork/758.0.2 Darwin/15.0.0"},
+                new [] {"9.1","CFNetwork/758.1.6 Darwin/15.0.0"},
+                new [] {"9.2","CFNetwork/758.2.8 Darwin/15.0.0"},
+                new [] {"9.2.1","CFNetwork/758.2.8 Darwin/15.0.0"},
+                new [] {"9.3","CFNetwork/758.3.15 Darwin/15.4.0"},
+                new [] {"9.3.2","CFNetwork/758.4.3 Darwin/15.5.0"},
+                new [] {"10.3.3","CFNetwork/807.2.14 Darwin/16.3.0"},
+                new [] {"11.1.0","CFNetwork/889.3 Darwin/17.2.0"},
+                new [] {"11.2.0","CFNetwork/893.10 Darwin/17.3.0"}
         };
 
-        private static readonly string[] OsUserAgentParts = {
-            /*
-             * not more supportd
-            "CFNetwork/711.1.16 Darwin/14.0.0", // 8.1.1
-            "CFNetwork/711.1.16 Darwin/14.0.0", // 8.1.2
-            "CFNetwork/711.1.16	Darwin/14.0.0", // 8.1.3
-            "CFNetwork/711.2.23 Darwin/14.0.0", // 8.2
-            "CFNetwork/711.3.18 Darwin/14.0.0", // 8.3
-            "CFNetwork/711.4.6 Darwin/14.4.0",  // 8.4
-            "CFNetwork/711.4.6 Darwin/14.4.0",  // 8.4.1*/
-            "CFNetwork/758.0.2 Darwin/15.0.0",  // 9.0
-            "CFNetwork/758.0.2 Darwin/15.0.0",  // 9.0.1
-            "CFNetwork/758.0.2 Darwin/15.0.0",  // 9.0.2
-            "CFNetwork/758.1.6 Darwin/15.0.0",  // 9.1
-            "CFNetwork/758.2.8 Darwin/15.0.0",  // 9.2
-            "CFNetwork/758.2.8 Darwin/15.0.0",  // 9.2.1
-            "CFNetwork/758.3.15 Darwin/15.4.0", // 9.3
-//            "9.3.1", // 9.3.1
-            "CFNetwork/758.4.3 Darwin/15.5.0", // 9.3.2
-//            "9.3.3", // 9.3.3
-//            "9.3.4"  // 9.3.4
-            "CFNetwork/807.2.14 Darwin/16.3.0", // 10.3.3
-            "CFNetwork/889.3 Darwin/17.2.0", // 11.1.0
-            "CFNetwork/893.10 Darwin/17.3.0", // 11.2.0
-        };
 
         public static DeviceWrapper GetRandomDevice()
         {
             var device = Devices[Random.Next(Devices.Length)];
+            var lastValidOsIndex = OsVars.Length;
+            if (device[0].Contains("iPhone4"))
+                lastValidOsIndex = 7;
+            else if (device[0].Contains("iPhone5"))
+                lastValidOsIndex = 8;
+            else if (device[0].Contains("iPad5"))
+                lastValidOsIndex = 8;
 
-            var osId = Random.Next(OsVersions.Length);
-            var firmwareType = OsVersions[osId];
-            var firmwareUserAgentPart = OsUserAgentParts[osId];
+            var osIndex = Random.Next(lastValidOsIndex);
+            var firmwareType = OsVars[osIndex][0];
+            var firmwareUserAgentPart = OsVars[osIndex][1];
 
             return new DeviceWrapper
             {
