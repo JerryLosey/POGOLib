@@ -5,6 +5,7 @@
         Started,
         Stopped,
         Paused,
-        Resumed
+        Resumed,
+        TemporalBanned
     }
 }

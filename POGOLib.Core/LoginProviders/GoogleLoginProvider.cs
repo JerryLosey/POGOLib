@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using GPSOAuthSharp;
 using POGOLib.Official.Exceptions;
 using POGOLib.Official.Extensions;
 using POGOLib.Official.Logging;

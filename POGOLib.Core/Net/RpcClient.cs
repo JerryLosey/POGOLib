@@ -151,6 +151,10 @@ namespace POGOLib.Official.Net
             } while (!playerResponse.Success);
 
 
+            _session.Player.Data = playerResponse.PlayerData;
+            _session.Player.Banned = playerResponse.Banned;
+            _session.Player.Warn = playerResponse.Warn;
+
             if (playerResponse.Warn)
             {
                 _session.logger.Warn("This account is flagged.");
@@ -158,13 +162,17 @@ namespace POGOLib.Official.Net
             if (playerResponse.Banned)
             {
                 _session.logger.Error("This account is banned.");
+                return false;
             }
 
-            _session.Player.Data = playerResponse.PlayerData;
-            _session.Player.Banned = playerResponse.Banned;
-            _session.Player.Warn = playerResponse.Warn;
-
-            await DownloadRemoteConfig();
+            try {
+                await DownloadRemoteConfig();
+            } catch (Exception ex1) {
+                if (ex1.Message.Contains("Bad Request")){
+                    return false;
+                }
+                throw ex1;
+            }
 
             if (manageResources)
             {
@@ -619,6 +627,10 @@ namespace POGOLib.Official.Net
                         _session.logger.Error("We tried to send a request while the session was stopped.");
                         return null;
 
+                    case SessionState.TemporalBanned:
+                        _session.logger.Error("We tried to send a request while the session was temporal banned.");
+                        return null;
+
                     case SessionState.Paused:
                         var requests = requestEnvelope.Requests.Select(x => x.RequestType).ToList();
                         if (requests.Count != 1 || requests[0] != RequestType.VerifyChallenge)
@@ -705,6 +717,9 @@ namespace POGOLib.Official.Net
 
                                 // Re-send envelope.
                                 return await PerformRemoteProcedureCallAsync(requestEnvelope);
+                            case ResponseEnvelope.Types.StatusCode.BadRequest:
+                                _session.SetTemporalBan();
+                                throw new Exception("Bad Request Received. The account is Temporal Banned");
 
                             default:
                                 _session.logger.Info($"Unknown status code: {responseEnvelope.StatusCode}");
@@ -928,9 +943,6 @@ namespace POGOLib.Official.Net
 
         public async Task DownloadRemoteConfig()
         {
-            if  (_session.Player.Warn){
-                return;
-            }
             var msg = new DownloadRemoteConfigVersionMessage
             {
                 Platform = GetPlatform(),

@@ -97,6 +97,10 @@ namespace POGOLib.Official.Net
                 logger.Debug($"Session state was set to {_state}.");
             }
         }
+        public void SetTemporalBan()
+        {
+            State = SessionState.TemporalBanned;
+        }
 
         /// <summary>
         /// Gets the <see cref="Random"/> of the <see cref="Session"/>.
