@@ -320,12 +320,12 @@ namespace POGOLib.Official.Net
             UrlsUpdated?.Invoke(this, new List<POGOProtos.Data.DownloadUrlEntry>(urls));
         }
 
-        internal void OnLocalConfigReceived(DownloadRemoteConfigVersionResponse downloadRemoteConfigVersionResponse)
+        internal void OnRemoteConfigVersionReceived(DownloadRemoteConfigVersionResponse downloadRemoteConfigVersionResponse)
         {
-            LocalConfigUpdated?.Invoke(this, new DownloadRemoteConfigVersionResponse(downloadRemoteConfigVersionResponse));
+            RemoteConfigVersionUpdated?.Invoke(this, new DownloadRemoteConfigVersionResponse(downloadRemoteConfigVersionResponse));
         }
 
-        public event EventHandler<DownloadRemoteConfigVersionResponse> LocalConfigUpdated;
+        public event EventHandler<DownloadRemoteConfigVersionResponse> RemoteConfigVersionUpdated;
 
         public event EventHandler<List<POGOProtos.Data.DownloadUrlEntry>> UrlsUpdated;
 

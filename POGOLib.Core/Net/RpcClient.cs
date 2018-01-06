@@ -958,7 +958,7 @@ namespace POGOLib.Official.Net
             _session.Templates.AssetDigestTimestampMs = downloadRemoteConfigVersionMessage.AssetDigestTimestampMs;
             _session.Templates.ItemTemplatesTimestampMs = downloadRemoteConfigVersionMessage.ItemTemplatesTimestampMs;
             _session.Templates.LocalConfigVersion = downloadRemoteConfigVersionMessage;
-            _session.OnLocalConfigReceived(downloadRemoteConfigVersionMessage);
+            _session.OnRemoteConfigVersionReceived(downloadRemoteConfigVersionMessage);
         }
 
         public async Task DownloadItemTemplates()
