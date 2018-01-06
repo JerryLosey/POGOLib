@@ -16,7 +16,6 @@ using POGOLib.Official.Util.Hash;
 using POGOProtos.Data;
 using POGOProtos.Settings;
 using POGOProtos.Networking.Requests.Messages;
-using POGOLib.Official.Extensions;
 using POGOProtos.Networking.Responses;
 using System.Collections.Generic;
 

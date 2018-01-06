@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
@@ -9,8 +8,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using GeoCoordinatePortable;
 using Google.Protobuf;
-using Newtonsoft.Json;
-using POGOLib.Official.Logging;
 using POGOLib.Official.Util;
 using POGOProtos.Map;
 using POGOProtos.Networking.Envelopes;

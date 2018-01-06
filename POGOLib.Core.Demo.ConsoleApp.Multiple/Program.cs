@@ -37,7 +37,6 @@ namespace POGOLib.Official.Demo.ConsoleApp.Multiple
             // Configure Logger
             LogManager.Configuration = new XmlLoggingConfiguration(Path.Combine(Directory.GetCurrentDirectory(), "nlog.config"));
 
-
             // Initiate console
             Logger.Info("Booting up.");
             Logger.Info("Type 'q', 'quit' or 'exit' to exit.");
