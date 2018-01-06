@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -38,27 +38,6 @@ namespace POGOLib.Official.Demo.ConsoleApp
             // Configure Logger
             LogManager.Configuration = new XmlLoggingConfiguration(Path.Combine(Directory.GetCurrentDirectory(), "nlog.config"));
 
-            Logging.Logger.RegisterLogOutput((level, message) =>
-            {
-                switch (level)
-                {
-                    case LogLevel.Debug:
-                        Logger.Debug(message);
-                        break;
-                    case LogLevel.Info:
-                        Logger.Info(message);
-                        break;
-                    case LogLevel.Notice:
-                    case LogLevel.Warn:
-                        Logger.Warn(message);
-                        break;
-                    case LogLevel.Error:
-                        Logger.Error(message);
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(level), level, null);
-                }
-            });
 
             // Initiate console
             Logger.Info("Booting up.");
@@ -106,6 +85,28 @@ namespace POGOLib.Official.Demo.ConsoleApp
             var latitude = 51.507352 + locRandom.NextDouble(-0.000030, 0.000030); // Somewhere in London
             var longitude = -0.127758 + locRandom.NextDouble(-0.000030, 0.000030);
             var session = await GetSession(loginProvider, latitude, longitude, true);
+
+            session.logger.RegisterLogOutput((level, message) =>
+            {
+                switch (level)
+                {
+                    case LogLevel.Debug:
+                        Logger.Debug(message);
+                        break;
+                    case LogLevel.Info:
+                        Logger.Info(message);
+                        break;
+                    case LogLevel.Notice:
+                    case LogLevel.Warn:
+                        Logger.Warn(message);
+                        break;
+                    case LogLevel.Error:
+                        Logger.Error(message);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(level), level, null);
+                }
+            });
 
             SaveAccessToken(session.AccessToken);
 
