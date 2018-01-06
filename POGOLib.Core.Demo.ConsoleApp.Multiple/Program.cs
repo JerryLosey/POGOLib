@@ -83,7 +83,7 @@ namespace POGOLib.Official.Demo.ConsoleApp.Multiple
                         var latitude = 51.507352 + locRandom.NextDouble(-0.000030, 0.000030); // Somewhere in London
                         var longitude = -0.127758 + locRandom.NextDouble(-0.000030, 0.000030);
                         var session = await GetSession(loginProvider, latitude, longitude, true);
-                        session.logger.RegisterLogOutput((level, message) =>
+                        session.Logger.RegisterLogOutput((level, message) =>
                         {
                             switch (level)
                             {
