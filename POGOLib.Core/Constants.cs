@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace POGOLib.Official
+﻿namespace POGOLib.Official
 {
     public static class Constants
     {

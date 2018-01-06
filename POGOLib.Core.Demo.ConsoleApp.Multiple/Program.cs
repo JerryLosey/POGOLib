@@ -36,7 +36,7 @@ namespace POGOLib.Official.Demo.ConsoleApp.Multiple
         {
             // Configure Logger
             LogManager.Configuration = new XmlLoggingConfiguration(Path.Combine(Directory.GetCurrentDirectory(), "nlog.config"));
-
+            
             Logging.Logger.RegisterLogOutput((level, message) =>
             {
                 switch (level)

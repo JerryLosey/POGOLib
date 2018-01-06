@@ -8,7 +8,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using POGOLib.Official.Logging;
 using POGOLib.Official.Util.Encryption.PokeHash;
 using POGOLib.Official.Util.Hash.PokeHash;
 using POGOProtos.Networking.Envelopes;
