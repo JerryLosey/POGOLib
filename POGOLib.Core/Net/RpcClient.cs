@@ -630,6 +630,9 @@ namespace POGOLib.Official.Net
                             case ResponseEnvelope.Types.StatusCode.Unknown:
                                 //Need observation here
                                 break;
+                            case ResponseEnvelope.Types.StatusCode.InvalidPlatformRequest:
+                                //Need observation here
+                                break;
                             default:
                                 _session.Logger.Info($"Unknown status code: {responseEnvelope.StatusCode}");
                                 break;
@@ -832,7 +835,7 @@ namespace POGOLib.Official.Net
                         break;
                     case RequestType.GetIncensePokemon:
                         var getIncensePokemonResponse = GetIncensePokemonResponse.Parser.ParseFrom(bytes);
-                        _session.Map.IncensePokemons = null;
+                        _session.Map.IncensePokemon = null;
                         if (getIncensePokemonResponse != null)
                         {
                             var pokemon = new MapPokemon
@@ -845,7 +848,7 @@ namespace POGOLib.Official.Net
                                 SpawnPointId = getIncensePokemonResponse.EncounterLocation,
                                 PokemonDisplay = getIncensePokemonResponse.PokemonDisplay
                             };
-                            _session.Map.IncensePokemons = pokemon;
+                            _session.Map.IncensePokemon = pokemon;
                         }
                         break;
                 }
