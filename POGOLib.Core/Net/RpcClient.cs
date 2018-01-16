@@ -624,6 +624,12 @@ namespace POGOLib.Official.Net
                             case ResponseEnvelope.Types.StatusCode.BadRequest:
                                 _session.SetTemporalBan();
                                 throw new Exception("Bad Request Received. The account is Temporal Banned");
+                            case ResponseEnvelope.Types.StatusCode.SessionInvalidated:
+                                //Need observation here
+                                break;
+                            case ResponseEnvelope.Types.StatusCode.Unknown:
+                                //Need observation here
+                                break;
                             default:
                                 _session.Logger.Info($"Unknown status code: {responseEnvelope.StatusCode}");
                                 break;
