@@ -826,7 +826,7 @@ namespace POGOLib.Official.Net
                         break;
                     case RequestType.GetIncensePokemon:
                         var getIncensePokemonResponse = GetIncensePokemonResponse.Parser.ParseFrom(bytes);
-                        if (getIncensePokemonResponse.PokemonId > 0)
+                        if (getIncensePokemonResponse != null)
                         {
                             var pokemon = new MapPokemon
                             {
