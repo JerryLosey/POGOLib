@@ -113,7 +113,9 @@ namespace POGOLib.Official.Net
         internal void SetTemporalBan()
         {
             State = SessionState.TemporalBanned;
-            Shutdown();
+            OnTemporalBanReceived();
+            if (State != SessionState.Stopped)
+                Shutdown();
         }
 
         /// <summary>
@@ -260,6 +262,7 @@ namespace POGOLib.Official.Net
             {
                 AccessToken accessToken = null;
                 var tries = 0;
+
                 while (accessToken == null)
                 {
                     try
@@ -284,6 +287,7 @@ namespace POGOLib.Official.Net
                         }
                     }
                 }
+
                 AccessToken = accessToken;
                 OnAccessTokenUpdated();
             }
@@ -291,7 +295,12 @@ namespace POGOLib.Official.Net
         }
 
         #region Events
-        private void OnAccessTokenUpdated()
+        internal void OnTemporalBanReceived()
+        {
+            TemporalBanReceived?.Invoke(this, EventArgs.Empty);
+        }
+
+        internal void OnAccessTokenUpdated()
         {
             AccessTokenUpdated?.Invoke(this, EventArgs.Empty);
         }
@@ -340,6 +349,8 @@ namespace POGOLib.Official.Net
         {
             RemoteConfigVersionUpdated?.Invoke(this, new DownloadRemoteConfigVersionResponse(downloadRemoteConfigVersionResponse));
         }
+
+        public event EventHandler<EventArgs> TemporalBanReceived;
 
         public event EventHandler<DownloadRemoteConfigVersionResponse> RemoteConfigVersionUpdated;
 
