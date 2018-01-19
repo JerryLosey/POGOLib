@@ -221,52 +221,6 @@ namespace POGOLib.Official.Net
             return true;
         }
 
-
-        // NOTE: Call this on SessionInvalidate, continue working but it is not that the real app does now.
-        internal async Task<bool> RevalidateSession()
-        {
-            // Send GetPlayer to check if we're connected and authenticated
-            GetPlayerResponse playerResponse;
-
-            int loop = 0;
-
-            do
-            {
-                var response = await SendRemoteProcedureCallAsync(new[]
-                {
-                    new Request
-                    {
-                        RequestType = RequestType.GetPlayer,
-                        RequestMessage = new GetPlayerMessage
-                        {
-                            // Get Player locale information
-                            PlayerLocale = _session.Player.PlayerLocale
-                        }.ToByteString()
-                    },
-                    new Request
-                    {
-                        RequestType = RequestType.CheckChallenge,
-                        RequestMessage = new CheckChallengeMessage
-                        {
-                            DebugRequest = false
-                        }.ToByteString()
-                    }
-                });
-                playerResponse = GetPlayerResponse.Parser.ParseFrom(response);
-                if (!playerResponse.Success)
-                {
-                    await Task.Delay(TimeSpan.FromMilliseconds(1000));
-                }
-                loop++;
-            } while (!playerResponse.Success && loop < 10);
-
-            _session.Player.Banned = playerResponse.Banned;
-            _session.Player.Warn = playerResponse.Warn;
-            _session.Player.Data = playerResponse.PlayerData;
-
-            return true;
-        }
-
         /// <summary>
         ///     It is not recommended to call this. Map objects will update automatically and fire the map update event.
         /// </summary>
@@ -666,13 +620,11 @@ namespace POGOLib.Official.Net
                                 return await PerformRemoteProcedureCallAsync(requestEnvelope);
                             case ResponseEnvelope.Types.StatusCode.BadRequest:
                                 // Your account may be banned! please try from the official client.
-                                throw new APIBadRequestException("BAD REQUEST \r\n" + JsonConvert.SerializeObject(requestEnvelope));
+                                throw new APIBadRequestException("BAD REQUEST");
                             case ResponseEnvelope.Types.StatusCode.SessionInvalidated:
                                 throw new SessionInvalidatedException("SESSION INVALIDATED EXCEPTION");
                             case ResponseEnvelope.Types.StatusCode.Unknown:
-                                //Need observation here
-                                _session.Logger.Error($"Unknown status code.");
-                                break;
+                                throw new SessionUnknowException("UNKNOWN");
                             case ResponseEnvelope.Types.StatusCode.InvalidPlatformRequest:
                                 throw new InvalidPlatformException("INVALID PLATFORM EXCEPTION");
                             default:
