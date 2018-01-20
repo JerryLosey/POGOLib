@@ -6,7 +6,6 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using GeoCoordinatePortable;
 using Google.Protobuf;
 using POGOLib.Official.Util;
 using POGOProtos.Map;
