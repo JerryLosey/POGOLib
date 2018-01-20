@@ -21,7 +21,6 @@ using POGOProtos.Networking.Platform.Responses;
 using POGOLib.Official.Extensions;
 using POGOProtos.Map.Pokemon;
 using POGOLib.Official.Exceptions;
-using Newtonsoft.Json;
 
 namespace POGOLib.Official.Net
 {
@@ -164,7 +163,7 @@ namespace POGOLib.Official.Net
                 return false;
             }
 
-            await DownloadRemoteConfig();        
+            await DownloadRemoteConfig();
 
             if (manageResources)
             {
@@ -497,9 +496,9 @@ namespace POGOLib.Official.Net
                     ByteString ret;
                     _rpcResponses.TryRemove(requestEnvelope, out ret);
                     return ret;
-                } 
+                }
                 catch (ArgumentOutOfRangeException)
-                {                  
+                {
                     return null;
                 }
                 finally
@@ -589,34 +588,38 @@ namespace POGOLib.Official.Net
 
                                 // Apply new token.
                                 requestEnvelope.AuthTicket = null;
+                                var token = string.IsNullOrEmpty(_session.AccessToken?.Token) ? String.Empty : _session.AccessToken?.Token;
+
                                 requestEnvelope.AuthInfo = new RequestEnvelope.Types.AuthInfo
                                 {
                                     Provider = _session.AccessToken.ProviderID,
                                     Token = new RequestEnvelope.Types.AuthInfo.Types.JWT
                                     {
-                                        Contents = _session.AccessToken.Token,
+                                        Contents = token,
                                         Unknown2 = 59
                                     }
                                 };
+                                //requestEnvelope.AuthTicket = _session.AccessToken.AuthTicket;
 
                                 // Clear all PlatformRequests.
                                 requestEnvelope.PlatformRequests.Clear();
 
                                 // Apply new UnknownPtr8.
-                                var plat8Message = new UnknownPtr8Request()
+                                if (Configuration.Hasher.AppVersion > 4500)
                                 {
-                                    Message = _mapKey
-                                };
+                                    var plat8Message = new UnknownPtr8Request()
+                                    {
+                                        Message = _mapKey
+                                    };
 
-                                requestEnvelope.PlatformRequests.Add(new RequestEnvelope.Types.PlatformRequest()
-                                {
-                                    Type = PlatformRequestType.UnknownPtr8,
-                                    RequestMessage = plat8Message.ToByteString()
-                                });
-
+                                    requestEnvelope.PlatformRequests.Add(new RequestEnvelope.Types.PlatformRequest()
+                                    {
+                                        Type = PlatformRequestType.UnknownPtr8,
+                                        RequestMessage = plat8Message.ToByteString()
+                                    });
+                                }
                                 // Apply new PlatformRequests to envelope.
                                 requestEnvelope.PlatformRequests.Add(await _rpcEncryption.GenerateSignatureAsync(requestEnvelope));
-
                                 // Re-send envelope.
                                 return await PerformRemoteProcedureCallAsync(requestEnvelope);
                             case ResponseEnvelope.Types.StatusCode.BadRequest:
@@ -628,6 +631,8 @@ namespace POGOLib.Official.Net
                                 throw new SessionUnknowException("UNKNOWN");
                             case ResponseEnvelope.Types.StatusCode.InvalidPlatformRequest:
                                 throw new InvalidPlatformException("INVALID PLATFORM EXCEPTION");
+                            case ResponseEnvelope.Types.StatusCode.InvalidRequest:
+                                throw new InvalidPlatformException("INVALID REQUEST");
                             default:
                                 throw new Exception($"Unknown status code: {responseEnvelope.StatusCode}");
                         }
@@ -657,14 +662,38 @@ namespace POGOLib.Official.Net
                     }
                 }
             }
-            catch (ArgumentOutOfRangeException)
+            catch (SessionInvalidatedException ex)
             {
-                return null;
+                throw new SessionInvalidatedException(ex.Message);
+            }
+            catch (InvalidPlatformException ex)
+            {
+                throw new InvalidPlatformException(ex.Message);
+            }
+            catch (APIBadRequestException ex)
+            {
+                if (requestEnvelope.Requests.FirstOrDefault().RequestType == RequestType.DownloadRemoteConfigVersion
+                    || requestEnvelope.Requests.FirstOrDefault().RequestType == RequestType.DownloadItemTemplates
+                    || requestEnvelope.Requests.FirstOrDefault().RequestType == RequestType.GetAssetDigest
+                    || requestEnvelope.Requests.FirstOrDefault().RequestType == RequestType.GetDownloadUrls)
+                {
+                    _session.SetTemporalBan();
+                    throw new SessionStateException("Your account may be temporary banned! please try from the official client.");
+                }
+                throw new APIBadRequestException(ex.Message);
+            }
+            catch (SessionUnknowException ex)
+            {
+                throw new SessionUnknowException(ex.Message);
+            }
+            catch (ArgumentOutOfRangeException ex)
+            {
+                throw new ArgumentOutOfRangeException(ex.Message);
             }
             catch (Exception e)
             {
                 _session.Logger.Error($"PerformRemoteProcedureCallAsync exception: {e}");
-                return null;
+                throw new Exception(e.Message);
             }
         }
 
@@ -881,18 +910,17 @@ namespace POGOLib.Official.Net
 
         private async Task DownloadRemoteConfig()
         {
-            var msg = new DownloadRemoteConfigVersionMessage
-            {
-                Platform = GetPlatform(),
-                DeviceManufacturer = _session.Device.DeviceInfo.HardwareManufacturer,
-                DeviceModel = _session.Device.DeviceInfo.DeviceModel,
-                Locale = _session.Player.PlayerLocale.Language + "_" + _session.Player.PlayerLocale.Country,
-                AppVersion = Configuration.Hasher.AppVersion
-            };
             var request = new Request
             {
                 RequestType = RequestType.DownloadRemoteConfigVersion,
-                RequestMessage = msg.ToByteString()
+                RequestMessage = new DownloadRemoteConfigVersionMessage
+                {
+                    Platform = GetPlatform(),
+                    DeviceManufacturer = _session.Device.DeviceInfo.HardwareManufacturer,
+                    DeviceModel = _session.Device.DeviceInfo.DeviceModel,
+                    Locale = _session.Player.PlayerLocale.Language + "_" + _session.Player.PlayerLocale.Country,
+                    AppVersion = Configuration.Hasher.AppVersion
+                }.ToByteString()
             };
 
             ByteString response = await SendRemoteProcedureCallAsync(request, true, true, true);
@@ -900,29 +928,29 @@ namespace POGOLib.Official.Net
             if (response != null)
             {
                 var downloadRemoteConfigVersionMessage = DownloadRemoteConfigVersionResponse.Parser.ParseFrom(response);
-                _session.Templates.AssetDigestTimestampMs = downloadRemoteConfigVersionMessage.AssetDigestTimestampMs;
-                _session.Templates.ItemTemplatesTimestampMs = downloadRemoteConfigVersionMessage.ItemTemplatesTimestampMs;
-                _session.Templates.LocalConfigVersion = downloadRemoteConfigVersionMessage;
-                _session.OnRemoteConfigVersionReceived(downloadRemoteConfigVersionMessage);
-            }
-            else if (_session.State != SessionState.Paused)
-            {
-                _session.SetTemporalBan();
-                throw new SessionStateException(nameof(response));
-            }
-        }
 
-        private async Task DownloadItemTemplates()
+                if (downloadRemoteConfigVersionMessage.Result == DownloadRemoteConfigVersionResponse.Types.Result.Success)
+                {
+                    _session.Templates.AssetDigestTimestampMs = downloadRemoteConfigVersionMessage.AssetDigestTimestampMs;
+                    _session.Templates.ItemTemplatesTimestampMs = downloadRemoteConfigVersionMessage.ItemTemplatesTimestampMs;
+                    _session.Templates.LocalConfigVersion = downloadRemoteConfigVersionMessage;
+                    _session.OnRemoteConfigVersionReceived(downloadRemoteConfigVersionMessage);
+                    return;
+                }
+            }
+         }
+
+        private async Task DownloadItemTemplates(int pageOffset = 0)
         {
-            var pageOffset = 0;
             var timestamp = 0ul;
             var templates = new List<DownloadItemTemplatesResponse.Types.ItemTemplate>();
             var local_config_version = new DownloadRemoteConfigVersionResponse();
+            int page = 0;
 
             if (_session.Templates.LocalConfigVersion != null)
-               local_config_version = _session.Templates.LocalConfigVersion;
-            
-            if ( _session.Templates.ItemTemplates != null  && (_session.Templates.ItemTemplatesTimestampMs <= local_config_version.ItemTemplatesTimestampMs))
+                local_config_version = _session.Templates.LocalConfigVersion;
+
+            if (_session.Templates.ItemTemplates != null && (_session.Templates.ItemTemplatesTimestampMs <= local_config_version.ItemTemplatesTimestampMs))
                 return;
 
             do
@@ -942,16 +970,26 @@ namespace POGOLib.Official.Net
                 {
                     var downloadItemTemplatesResponse = DownloadItemTemplatesResponse.Parser.ParseFrom(response);
 
-                    pageOffset = downloadItemTemplatesResponse.PageOffset;
-                    timestamp = downloadItemTemplatesResponse.TimestampMs;
-
-                    templates.AddRange(downloadItemTemplatesResponse.ItemTemplates);
+                    switch (downloadItemTemplatesResponse.Result)
+                    {
+                        case DownloadItemTemplatesResponse.Types.Result.Success:
+                            pageOffset = downloadItemTemplatesResponse.PageOffset;
+                            timestamp = downloadItemTemplatesResponse.TimestampMs;
+                            templates.AddRange(downloadItemTemplatesResponse.ItemTemplates);
+                            break;
+                        case DownloadItemTemplatesResponse.Types.Result.Page:
+                            //Pages is here xelwon
+                            _session.Logger.Debug(String.Format("Page Templates: {0}", page));
+                            break;
+                        case DownloadItemTemplatesResponse.Types.Result.Retry:
+                            await DownloadItemTemplates(pageOffset);
+                            break;
+                        case DownloadItemTemplatesResponse.Types.Result.Unset:
+                            _session.SetTemporalBan();
+                            throw new SessionStateException(nameof(response));
+                    }
+                    page++;
                 }
-                else if (_session.State != SessionState.Paused)
-                {
-                    throw new NullReferenceException(nameof(response));
-                }
-
             } while (pageOffset != 0);
 
             _session.Templates.ItemTemplates = templates;
@@ -964,12 +1002,12 @@ namespace POGOLib.Official.Net
             errorArgs.ErrorContext.Handled = true;
         }
 
-        private async Task GetAssetDigest()
+        private async Task GetAssetDigest(int pageOffset = 0)
         {
-            var pageOffset = 0;
             var timestamp = 0ul;
             var digests = new List<POGOProtos.Data.AssetDigestEntry>();
             var local_config_version = new DownloadRemoteConfigVersionResponse();
+            int page = 0;
 
             if (_session.Templates.LocalConfigVersion != null)
                 local_config_version = _session.Templates.LocalConfigVersion;
@@ -999,17 +1037,27 @@ namespace POGOLib.Official.Net
                 {
                     var getAssetDigestResponse = GetAssetDigestResponse.Parser.ParseFrom(response);
 
-                    pageOffset = getAssetDigestResponse.PageOffset;
-                    timestamp = getAssetDigestResponse.TimestampMs;
-
-                    digests.AddRange(getAssetDigestResponse.Digest);
+                    switch (getAssetDigestResponse.Result)
+                    {
+                        case GetAssetDigestResponse.Types.Result.Success:
+                            pageOffset = getAssetDigestResponse.PageOffset;
+                            timestamp = getAssetDigestResponse.TimestampMs;
+                            digests.AddRange(getAssetDigestResponse.Digest);
+                            break;
+                        case GetAssetDigestResponse.Types.Result.Retry:
+                            await GetAssetDigest(pageOffset);
+                            break;
+                        case GetAssetDigestResponse.Types.Result.Page:
+                            //Pages is here xelwon
+                            _session.Logger.Debug(String.Format("Page AssetDigest: {0}", page));
+                            break;
+                        case GetAssetDigestResponse.Types.Result.Unset:
+                            _session.SetTemporalBan();
+                            throw new SessionStateException(nameof(response));
+                    }
+                    page++;
                 }
-                else if (_session.State != SessionState.Paused)
-                {
-                    throw new NullReferenceException(nameof(response));
-                }
-
-            } while (pageOffset != 0);
+             } while (pageOffset != 0);
 
             _session.Templates.AssetDigests = digests;
             _session.OnAssetDigestReceived(digests);
@@ -1028,19 +1076,21 @@ namespace POGOLib.Official.Net
 
         private async Task GetDownloadURLs(string[] toCheck)
         {
-            var dowloadUrls = new List<POGOProtos.Data.DownloadUrlEntry>();
-            if (_session.Templates.DownloadUrls != null) {
-                    return;
-            }
-            var toDownload = new List<string>();
-
-            foreach (var check in toCheck)
+            if (_session.Templates.DownloadUrls != null)
             {
-                var digest = _session.Templates.AssetDigests.FirstOrDefault(x => x.BundleName == check);
-                var dowloadUrl = dowloadUrls?.FirstOrDefault(x => x.AssetId?.Split('/')[0] == digest.AssetId);
-                if (digest == null || dowloadUrl == null || digest.Version.ToString() != dowloadUrl.AssetId.Split('/')[1])
+                return;
+            }
+
+            var toDownload = new List<string>();
+            var dowloadUrls = new List<POGOProtos.Data.DownloadUrlEntry>();
+
+            for (int i = 0; i < _session.Templates.AssetDigests.Count; i++)
+            {
+                var digest = _session.Templates.AssetDigests[i];
+                foreach (var check in toCheck)
                 {
-                    toDownload.Add(digest.AssetId);
+                    if (digest.BundleName == check)
+                        toDownload.Add(digest.AssetId);
                 }
             }
 
@@ -1056,15 +1106,9 @@ namespace POGOLib.Official.Net
             if (response != null)
             {
                 var getDownloadUrlsResponse = GetDownloadUrlsResponse.Parser.ParseFrom(response);
-
                 dowloadUrls.AddRange(getDownloadUrlsResponse.DownloadUrls);
-
                 _session.Templates.DownloadUrls = dowloadUrls;
                 _session.OnUrlsReceived(dowloadUrls);
-            }
-            else if (_session.State != SessionState.Paused)
-            {
-                throw new NullReferenceException(nameof(response));
             }
         }
     }
