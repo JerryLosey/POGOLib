@@ -940,12 +940,12 @@ namespace POGOLib.Official.Net
             }
          }
 
-        private async Task DownloadItemTemplates(int pageOffset = 0)
+        private async Task DownloadItemTemplates(int pageOffset = 0, ulong timestamp = 0ul)
         {
-            var timestamp = 0ul;
+            var time = timestamp != 0ul ? timestamp : 0ul;
             var templates = new List<DownloadItemTemplatesResponse.Types.ItemTemplate>();
             var local_config_version = new DownloadRemoteConfigVersionResponse();
-            int page = 0;
+            int page = pageOffset > 0 ? pageOffset : 0;
 
             if (_session.Templates.LocalConfigVersion != null)
                 local_config_version = _session.Templates.LocalConfigVersion;
@@ -960,9 +960,9 @@ namespace POGOLib.Official.Net
                     RequestType = RequestType.DownloadItemTemplates,
                     RequestMessage = new DownloadItemTemplatesMessage
                     {
-                        PageOffset = pageOffset,
+                        PageOffset = page,
                         Paginate = true,
-                        PageTimestamp = timestamp
+                        PageTimestamp = time
                     }.ToByteString()
                 }, true, true, true);
 
@@ -973,8 +973,6 @@ namespace POGOLib.Official.Net
                     switch (downloadItemTemplatesResponse.Result)
                     {
                         case DownloadItemTemplatesResponse.Types.Result.Success:
-                            pageOffset = downloadItemTemplatesResponse.PageOffset;
-                            timestamp = downloadItemTemplatesResponse.TimestampMs;
                             templates.AddRange(downloadItemTemplatesResponse.ItemTemplates);
                             break;
                         case DownloadItemTemplatesResponse.Types.Result.Page:
@@ -982,7 +980,7 @@ namespace POGOLib.Official.Net
                             _session.Logger.Debug(String.Format("Page Templates: {0}", page));
                             break;
                         case DownloadItemTemplatesResponse.Types.Result.Retry:
-                            await DownloadItemTemplates(pageOffset);
+                            await DownloadItemTemplates(downloadItemTemplatesResponse.PageOffset, downloadItemTemplatesResponse.TimestampMs);
                             break;
                         case DownloadItemTemplatesResponse.Types.Result.Unset:
                             _session.SetTemporalBan();
@@ -1002,12 +1000,12 @@ namespace POGOLib.Official.Net
             errorArgs.ErrorContext.Handled = true;
         }
 
-        private async Task GetAssetDigest(int pageOffset = 0)
+        private async Task GetAssetDigest(int pageOffset = 0, ulong timestamp = 0ul)
         {
-            var timestamp = 0ul;
+            var time = timestamp != 0ul ? timestamp : 0ul;
             var digests = new List<POGOProtos.Data.AssetDigestEntry>();
             var local_config_version = new DownloadRemoteConfigVersionResponse();
-            int page = 0;
+            int page = pageOffset > 0 ? pageOffset : 0;
 
             if (_session.Templates.LocalConfigVersion != null)
                 local_config_version = _session.Templates.LocalConfigVersion;
@@ -1027,9 +1025,9 @@ namespace POGOLib.Official.Net
                         DeviceModel = _session.Device.DeviceInfo.DeviceModel,
                         Locale = _session.Player.PlayerLocale.Language + "_" + _session.Player.PlayerLocale.Country,
                         AppVersion = Configuration.Hasher.AppVersion,
-                        PageOffset = pageOffset,
+                        PageOffset = page,
                         Paginate = true,
-                        PageTimestamp = timestamp
+                        PageTimestamp = time
                     }.ToByteString()
                 }, true, true, true);
 
@@ -1040,12 +1038,10 @@ namespace POGOLib.Official.Net
                     switch (getAssetDigestResponse.Result)
                     {
                         case GetAssetDigestResponse.Types.Result.Success:
-                            pageOffset = getAssetDigestResponse.PageOffset;
-                            timestamp = getAssetDigestResponse.TimestampMs;
                             digests.AddRange(getAssetDigestResponse.Digest);
                             break;
                         case GetAssetDigestResponse.Types.Result.Retry:
-                            await GetAssetDigest(pageOffset);
+                            await GetAssetDigest(getAssetDigestResponse.PageOffset, getAssetDigestResponse.TimestampMs);
                             break;
                         case GetAssetDigestResponse.Types.Result.Page:
                             //Pages is here xelwon
