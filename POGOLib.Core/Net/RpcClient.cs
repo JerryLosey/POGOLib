@@ -582,7 +582,12 @@ namespace POGOLib.Official.Net
                                 await _session.Reauthenticate();
 
                                 // Apply new token.
-                                requestEnvelope.AuthTicket = null;
+                                if (_session.AccessToken.AuthTicket != null && _session.AccessToken.AuthTicket.ExpireTimestampMs < ((ulong)TimeUtil.GetCurrentTimestampInMilliseconds() - (60000 * 2)))
+                                {
+                                    // Check for almost expired AuthTicket (2 minute buffer). Null out the AuthTicket so that AccessToken is used.
+                                    _session.AccessToken.AuthTicket = null;
+                                }
+
                                 var token = string.IsNullOrEmpty(_session.AccessToken?.Token) ? String.Empty : _session.AccessToken?.Token;
 
                                 requestEnvelope.AuthInfo = new RequestEnvelope.Types.AuthInfo
@@ -1066,7 +1071,7 @@ namespace POGOLib.Official.Net
             }
         }
 
-        /*private async Task GetDownloadURLs()
+        private async Task GetDownloadURLs()
         {
             var toCheck = new[] {
                 "i18n_general",
@@ -1076,17 +1081,15 @@ namespace POGOLib.Official.Net
 
             await GetDownloadURLs(toCheck);
         }
-        */
 
-        private async Task GetDownloadURLs()
+        private async Task GetDownloadURLs(string[] toCheck)
         {
-            if (_session.Templates.DownloadUrls != null)
+            if (_session.Templates.DownloadUrls != null && _session.Templates.AssetDigests != null)
             {
                 _session.Logger.Debug("Use cached values for GetDownloadUrls");
                 return;
             }
             var dowloadUrls = new List<POGOProtos.Data.DownloadUrlEntry>();
-            /*
             var toDownload = new List<string>();
 
             for (int i = 0; i < _session.Templates.AssetDigests.Count; i++)
@@ -1098,14 +1101,19 @@ namespace POGOLib.Official.Net
                         toDownload.Add(digest.AssetId);
                 }
             }
-            */
+
+            if (toDownload.Count == 0)
+            {
+                _session.Logger.Debug("Urls to load is empty, ignore request.");
+                return;
+            }
 
             var response = await SendRemoteProcedureCallAsync(new Request
             {
                 RequestType = RequestType.GetDownloadUrls,
                 RequestMessage = new GetDownloadUrlsMessage
                 {
-                    //AssetId = { toDownload.ToArray() }
+                    AssetId = { toDownload.ToArray() }
                 }.ToByteString()
             }, true, true, true);
 
