@@ -99,192 +99,154 @@ namespace POGOLib.Official.Util.Hash
 
             var requestContent = new StringContent(JsonConvert.SerializeObject(requestData), Encoding.UTF8, "application/json");
 
-            int retryCount = 0;
-            while (retryCount <= 10)
+            using (var response = await PerformRequest(requestContent))
             {
-                using (var response = await PerformRequest(requestContent))
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                string message = String.Empty;
+
+                switch (response.StatusCode)
                 {
-                    var responseContent = await response.Content.ReadAsStringAsync();
+                    case HttpStatusCode.OK:
+                        var responseData = JsonConvert.DeserializeObject<PokeHashResponse>(responseContent);
 
-                    string message;
+                        return new HashData
+                        {
+                            LocationAuthHash = responseData.LocationAuthHash,
+                            LocationHash = responseData.LocationHash,
+                            RequestHashes = responseData.RequestHashes
+                                .Select(x => (ulong)x)
+                                .ToArray()
+                        };
 
-                    switch (response.StatusCode)
-                    {
-                        case HttpStatusCode.OK:
-                            var responseData = JsonConvert.DeserializeObject<PokeHashResponse>(responseContent);
+                    case HttpStatusCode.NotFound:
+                        message = $"Hashing endpoint not found!";
+                        break;
 
-                            return new HashData
-                            {
-                                LocationAuthHash = responseData.LocationAuthHash,
-                                LocationHash = responseData.LocationHash,
-                                RequestHashes = responseData.RequestHashes
-                                    .Select(x => (ulong)x)
-                                    .ToArray()
-                            };
+                    case HttpStatusCode.BadRequest:
+                        message = $"Bad request sent to the hashing server! {responseContent}";
+                        break;
 
-                        case HttpStatusCode.NotFound:
-                            message = $"Hashing endpoint not found!";
-                            break;
+                    case HttpStatusCode.Unauthorized:
+                        message = "The auth key supplied for PokeHash was invalid.";
+                        break;
 
-                        case HttpStatusCode.BadRequest:
-                            message = $"Bad request sent to the hashing server! {responseContent}";
-                            break;
+                    case (HttpStatusCode)429:
+                        message = $"Your request has been limited. {response}";
+                        break;
 
-                        case HttpStatusCode.Unauthorized:
-                            message = "The auth key supplied for PokeHash was invalid.";
-                            break;
-
-                        case (HttpStatusCode)429:
-                            message = $"Your request has been limited. {response}";
-                            break;
-
-                        default:
-                            message = $"We received an unknown HttpStatusCode ({response.StatusCode})..";
-                            break;
-                    }
-
-                    // TODO: Find a better way to let the developer know of these issues.
-                    message = $"[PokeHash]: {message}";
-
-                    //Logger.Error(message);
-
-                    if (retryCount == 10)
-                        throw new PokeHashException(message);
-
-                    retryCount++;
+                    default:
+                        message = $"We received an unknown HttpStatusCode ({response.StatusCode})..";
+                        break;
                 }
+
+                // TODO: Find a better way to let the developer know of these issues.
+                message = $"[PokeHash]: {message}";
+
+                //Logger.Error(message);
+
+                if (!String.IsNullOrEmpty(message))// retryCount == 10)
+                    throw new PokeHashException(message);
             }
             return null;
         }
 
-        private Task<HttpResponseMessage> PerformRequest(HttpContent requestContent)
+        private async Task<HttpResponseMessage> PerformRequest(HttpContent requestContent)
         {
-            return Task.Run(async () =>
+            PokeHashAuthKey authKey;
+
+            // Key selection
+            _keySelection.WaitOne();
+
+            var availableKeys = _authKeys.Where(x => x.Requests < x.MaxRequestCount).ToArray();
+            if (availableKeys.Length > 0)
             {
-                PokeHashAuthKey authKey;
-                var extendedSelection = false;
+                authKey = availableKeys.First();
+                authKey.Requests += 1;
+            }
+            else
+            {
+                authKey = _authKeys
+                    .OrderBy(x => x.RatePeriodEnd)
+                    .First();
 
-                // Key selection
-                try
+                var sleepTime = (int)Math.Ceiling(authKey.RatePeriodEnd.Subtract(DateTime.UtcNow).TotalMilliseconds);
+
+                PokehashSleeping?.Invoke(this, sleepTime);
+
+                await Task.Delay(sleepTime);
+
+                // Rate limit is over, so reset requests.
+                authKey.Requests = 0;
+            }
+
+            // Add hashkey
+            requestContent.Headers.Add("X-AuthToken", authKey.AuthKey);
+
+            // Initialize HttpClient.
+            HttpResponseMessage response = new HttpResponseMessage();
+
+            using (var _httpClient = new HttpClient
+            {
+                BaseAddress = GetHashUri(authKey.AuthKey)
+            })
+            {
+                _httpClient.DefaultRequestHeaders.Clear();
+                _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                _httpClient.DefaultRequestHeaders.UserAgent.TryParseAdd("POGOLib.Core (https://github.com/Furtif/POGOLib)");
+                response = await _httpClient.PostAsync(Configuration.HashEndpoint, requestContent);
+                _httpClient.Dispose();
+            };
+
+            if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                throw new PokeHashException("Pokehash key seems invalid");
+            }
+
+            // Parse headers
+            int maxRequestCount;
+            int rateRequestsRemaining;
+            int ratePeriodEndSeconds;
+
+            IEnumerable<string> maxRequestsValue;
+            IEnumerable<string> requestsRemainingValue;
+            IEnumerable<string> ratePeriodEndValue;
+            if (response.Headers.TryGetValues("X-MaxRequestCount", out maxRequestsValue) &&
+                response.Headers.TryGetValues("X-RateRequestsRemaining", out requestsRemainingValue) &&
+                response.Headers.TryGetValues("X-RatePeriodEnd", out ratePeriodEndValue))
+            {
+                if (!int.TryParse(maxRequestsValue.First(), out maxRequestCount) ||
+                    !int.TryParse(requestsRemainingValue.First(), out rateRequestsRemaining) ||
+                    !int.TryParse(ratePeriodEndValue.FirstOrDefault(), out ratePeriodEndSeconds))
                 {
-                    _keySelection.WaitOne();
-
-                    var availableKeys = _authKeys.Where(x => x.Requests < x.MaxRequestCount).ToArray();
-                    if (availableKeys.Length > 0)
-                    {
-                        authKey = availableKeys.First();
-                        authKey.Requests += 1;
-
-                        // If the auth key has not been initialized yet, we need to have control a bit longer
-                        // to configure it properly.
-                        if (!authKey.IsInitialized)
-                            extendedSelection = true;
-                    }
-                    else
-                    {
-                        authKey = _authKeys
-                            .OrderBy(x => x.RatePeriodEnd)
-                            .First();
-
-                        var sleepTime = (int)Math.Ceiling(authKey.RatePeriodEnd.Subtract(DateTime.UtcNow).TotalMilliseconds);
-
-                        PokehashSleeping?.Invoke(this, sleepTime);
-
-                        await Task.Delay(sleepTime);
-
-                        // Rate limit is over, so reset requests.
-                        authKey.Requests = 0;
-                        // We have to receive the new rate period end.
-                        extendedSelection = true;
-                    }
-
-                    // Add hashkey
-                    requestContent.Headers.Add("X-AuthToken", authKey.AuthKey);
+                    throw new PokeHashException("Failed parsing pokehash response header values.");
                 }
-                catch (Exception ex)
-                {
-                    throw new PokeHashException(ex.Message);
-                }
-                finally
-                {
-                    if (!extendedSelection)
-                    {
-                        _keySelection.Release();
-                    }
-                }
+            }
+            else
+            {
+                throw new PokeHashException("Failed parsing pokehash response headers.");
+            }
 
-                // Initialize HttpClient.
-                var _httpClient = new HttpClient
-                {
-                    BaseAddress = GetHashUri(authKey.AuthKey),
-                };
+            // Use parsed headers
+            if (!authKey.IsInitialized)
+            {
+                authKey.MaxRequestCount = maxRequestCount;
+                authKey.Requests = authKey.MaxRequestCount - rateRequestsRemaining;
+                authKey.IsInitialized = true;
+            }
 
-                // Handle response
-                try
-                {
-                    _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                    _httpClient.DefaultRequestHeaders.UserAgent.TryParseAdd("POGOLib.Core (https://github.com/Furtif/POGOLib)");
-                    HttpResponseMessage response = await _httpClient.PostAsync(Configuration.HashEndpoint, requestContent);
+            var ratePeriodEnd = TimeUtil.GetDateTimeFromSeconds(ratePeriodEndSeconds);
+            if (ratePeriodEnd > authKey.RatePeriodEnd)
+            {
+                authKey.RatePeriodEnd = ratePeriodEnd;
+            }
 
-                    if (response.StatusCode == HttpStatusCode.BadRequest)
-                    {
-                        throw new PokeHashException("Pokehash key seems invalid");
-                    }
+            _keySelection.Release();
 
-                    // Parse headers
-                    int maxRequestCount;
-                    int rateRequestsRemaining;
-                    int ratePeriodEndSeconds;
+            if (response == null)
+                throw new PokeHashException("Missed response Data");
 
-                    IEnumerable<string> maxRequestsValue;
-                    IEnumerable<string> requestsRemainingValue;
-                    IEnumerable<string> ratePeriodEndValue;
-                    if (response.Headers.TryGetValues("X-MaxRequestCount", out maxRequestsValue) &&
-                        response.Headers.TryGetValues("X-RateRequestsRemaining", out requestsRemainingValue) &&
-                        response.Headers.TryGetValues("X-RatePeriodEnd", out ratePeriodEndValue))
-                    {
-                        if (!int.TryParse(maxRequestsValue.First(), out maxRequestCount) ||
-                            !int.TryParse(requestsRemainingValue.First(), out rateRequestsRemaining) ||
-                            !int.TryParse(ratePeriodEndValue.FirstOrDefault(), out ratePeriodEndSeconds))
-                        {
-                            throw new PokeHashException("Failed parsing pokehash response header values.");
-                        }
-                    }
-                    else
-                    {
-                        throw new PokeHashException("Failed parsing pokehash response headers.");
-                    }
-
-                    // Use parsed headers
-                    if (!authKey.IsInitialized)
-                    {
-                        authKey.MaxRequestCount = maxRequestCount;
-                        authKey.Requests = authKey.MaxRequestCount - rateRequestsRemaining;
-                        authKey.IsInitialized = true;
-                    }
-
-                    var ratePeriodEnd = TimeUtil.GetDateTimeFromSeconds(ratePeriodEndSeconds);
-                    if (ratePeriodEnd > authKey.RatePeriodEnd)
-                    {
-                        authKey.RatePeriodEnd = ratePeriodEnd;
-                    }
-
-                    return response;
-                }
-                catch (Exception ex)
-                {
-                    throw new PokeHashException(ex.Message);
-                }
-                finally
-                {
-                    if (extendedSelection)
-                    {
-                        _keySelection.Release();
-                    }
-
-                    _httpClient.Dispose();
-                }
-            });
+            return response;
         }
 
         public byte[] GetEncryptedSignature(byte[] signatureBytes, uint timestampSinceStartMs)

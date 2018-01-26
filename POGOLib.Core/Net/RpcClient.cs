@@ -214,15 +214,14 @@ namespace POGOLib.Official.Net
 
                     if (mapObjects.MapCells.Count == 0)
                     {
-                        _session.Logger.Error("We received 0 map cells, are your GPS coordinates correct?");
-                        return;
+                        throw new SessionStateException("We received 0 map cells, are your session is stoped?");
                     }
 
                     _session.Map.Cells = mapObjects.MapCells;
                 }
                 else
                 {
-                    _session.Logger.Warn($"GetMapObjects status is: '{mapObjects.Status}'.");
+                    throw new SessionStateException($"GetMapObjects status is: '{mapObjects.Status}'.");
                 }
             }
             else if (_session.State != SessionState.Paused)
@@ -683,10 +682,13 @@ namespace POGOLib.Official.Net
             {
                 throw new GoogleLoginException(ex.Message);
             }
-            catch (Exception e)
+            catch (SessionStateException e)
             {
-                _session.Logger.Error($"PerformRemoteProcedureCallAsync exception: {e}");
-                throw new Exception(e.Message);
+                throw new SessionStateException(e.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SessionStateException($"Your account may be temporary banned! please try from the official client." + new Exception(ex.Message));
             }
         }
 

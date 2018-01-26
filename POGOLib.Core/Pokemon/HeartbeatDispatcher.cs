@@ -86,7 +86,7 @@ namespace POGOLib.Official.Pokemon
                     }
                     catch (Exception e)
                     {
-                        _session.Logger.Error($"Unknown Exeption: {e}");
+                        throw new Exception(e.Message);
                     }
                 }
 

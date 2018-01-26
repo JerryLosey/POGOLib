@@ -194,18 +194,38 @@ namespace POGOLib.Official.Net
 
             var requestsBytes = requestEnvelope.Requests.Select(x => x.ToByteArray()).ToArray();
 
-            HashData hashData;
-            try
+            HashData hashData = new HashData();
+            int retry = 3;
+            do
             {
-                hashData = await Configuration.Hasher.GetHashDataAsync(requestEnvelope, signature, locationBytes, requestsBytes, serializedTicket);
-            }
-            catch (Exception ex1)
-            {
-                _session.Logger.Error(ex1.Message);
-                throw new PokeHashException(ex1.Message);
-            }
+                try
+                {
+                    hashData = await Configuration.Hasher.GetHashDataAsync(requestEnvelope, signature, locationBytes, requestsBytes, serializedTicket);
+                }
+                catch (TimeoutException)
+                {
+                    throw new PokeHashException("Hasher server might down - timeout out");
+                }
+                catch (PokeHashException ex1)
+                {
+                    throw new PokeHashException(ex1.Message);
+                }
+                catch (SessionStateException ex1)
+                {
+                    throw new SessionStateException(ex1.Message);
+                }
+                catch (Exception ex1)
+                {
+                    throw new Exception(ex1.Message);
+                }
+                finally
+                {
+                    retry--;
+                }
+                await Task.Delay(1000);
+            } while (retry > 0);
 
-            if (hashData == null)
+            if (hashData.RequestHashes.Count() == 0)
                 throw new PokeHashException("Missed Hash Data");
 
             signature.LocationHash1 = (int)hashData.LocationAuthHash;
