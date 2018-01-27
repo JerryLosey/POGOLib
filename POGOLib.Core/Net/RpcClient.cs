@@ -174,7 +174,7 @@ namespace POGOLib.Official.Net
         /// <summary>
         ///     It is not recommended to call this. Map objects will update automatically and fire the map update event.
         /// </summary>
-        internal async Task RefreshMapObjectsAsync()
+        public async Task RefreshMapObjectsAsync()
         {
             var cellIds = MapUtil.GetCellIdsForLatLong(_session.Player.Coordinate.Latitude, _session.Player.Coordinate.Longitude);
             var sinceTimeMs = cellIds.Select(x => (long)0).ToArray();
@@ -688,7 +688,7 @@ namespace POGOLib.Official.Net
             }
             catch (Exception ex)
             {
-                throw new SessionStateException($"Your account may be temporary banned! please try from the official client." + new Exception(ex.Message));
+                throw new SessionStateException($"Your account may be temporary banned! please try from the official client." + ex);
             }
         }
 

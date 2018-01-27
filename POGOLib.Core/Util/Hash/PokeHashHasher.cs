@@ -27,23 +27,23 @@ namespace POGOLib.Official.Util.Hash
     public class PokeHashHasher : IHasher
     {
         private readonly List<PokeHashAuthKey> _authKeys;
-        private readonly List<PokeHashAuthHasher> _authHashers 
-            = new List<PokeHashAuthHasher>{new PokeHashAuthHasher("PH", new Uri("http://hash.goman.io/"))};
+        private readonly List<PokeHashAuthHasher> _authHashers
+            = new List<PokeHashAuthHasher> { new PokeHashAuthHasher("PH", new Uri("http://hash.goman.io/")) };
 
         private readonly Semaphore _keySelection;
 
-		public Version PokemonVersion { get; } = new Version("0.89.1");
-        
-		// NOTE: Warning: Sotmetimes, this value is not the same that API version, so we need know it for each new API version.
+        public Version PokemonVersion { get; } = new Version("0.89.1");
+
+        // NOTE: Warning: Sotmetimes, this value is not the same that API version, so we need know it for each new API version.
         public uint AppVersion { get; } = 8900;
 
         public long Unknown25 { get; } = unchecked((long)0xF522F8878F08FFD6);
-    
+
         /// <summary>
         ///     Initializes the <see cref="PokeHashHasher"/>.
         /// </summary>
         /// <param name="authKey">The PokeHash authkey obtained from https://talk.pogodev.org/d/51-api-hashing-service-by-pokefarmer. </param>
-        public PokeHashHasher(string authKey) : this(new []{ authKey })
+        public PokeHashHasher(string authKey) : this(new[] { authKey })
         {
 
         }
@@ -54,11 +54,12 @@ namespace POGOLib.Official.Util.Hash
         /// <param name="key">The PokeHash authkeys obtained from Hash Server. </param>
         private Uri GetHashUri(string key)
         {
-            foreach (var hasher in _authHashers) {
+            foreach (var hasher in _authHashers)
+            {
                 if (key.StartsWith(hasher.pattern, StringComparison.Ordinal))
                     return hasher.uri;
             }
-            return Configuration.HasherUrl;;
+            return Configuration.HasherUrl; ;
         }
 
         /// <summary>
@@ -124,7 +125,7 @@ namespace POGOLib.Official.Util.Hash
                         break;
 
                     case HttpStatusCode.BadRequest:
-                        message = $"Bad request sent to the hashing server! {responseContent}";
+                        message = "Bad request sent to the hashing server!";
                         break;
 
                     case HttpStatusCode.Unauthorized:
@@ -153,107 +154,110 @@ namespace POGOLib.Official.Util.Hash
 
         private async Task<HttpResponseMessage> PerformRequest(HttpContent requestContent)
         {
-            PokeHashAuthKey authKey;
+            //Retries
+            int retries = 3;
 
             // Key selection
             _keySelection.WaitOne();
+            HttpResponseMessage response = null;
+            PokeHashAuthKey authKey;
 
-            var availableKeys = _authKeys.Where(x => x.Requests < x.MaxRequestCount).ToArray();
-            if (availableKeys.Length > 0)
+            do
             {
-                authKey = availableKeys.First();
-                authKey.Requests += 1;
-            }
-            else
-            {
-                authKey = _authKeys
-                    .OrderBy(x => x.RatePeriodEnd)
-                    .First();
-
-                var sleepTime = (int)Math.Ceiling(authKey.RatePeriodEnd.Subtract(DateTime.UtcNow).TotalMilliseconds);
-
-                PokehashSleeping?.Invoke(this, sleepTime);
-
-                await Task.Delay(sleepTime);
-
-                // Rate limit is over, so reset requests.
-                authKey.Requests = 0;
-            }
-
-            // Add hashkey
-            requestContent.Headers.Add("X-AuthToken", authKey.AuthKey);
-
-            // Initialize HttpClient.
-            HttpResponseMessage response = new HttpResponseMessage();
-
-            using (var _httpClient = new HttpClient
-            {
-                BaseAddress = GetHashUri(authKey.AuthKey)
-            })
-            {
-                _httpClient.DefaultRequestHeaders.Clear();
-                _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                _httpClient.DefaultRequestHeaders.UserAgent.TryParseAdd("POGOLib.Core (https://github.com/Furtif/POGOLib)");
-                response = await _httpClient.PostAsync(Configuration.HashEndpoint, requestContent);
-                _httpClient.Dispose();
-            };
-
-            if (response.StatusCode == HttpStatusCode.BadRequest)
-            {
-                throw new PokeHashException("Pokehash key seems invalid");
-            }
-
-            // Parse headers
-            int maxRequestCount;
-            int rateRequestsRemaining;
-            int ratePeriodEndSeconds;
-
-            IEnumerable<string> maxRequestsValue;
-            IEnumerable<string> requestsRemainingValue;
-            IEnumerable<string> ratePeriodEndValue;
-            if (response.Headers.TryGetValues("X-MaxRequestCount", out maxRequestsValue) &&
-                response.Headers.TryGetValues("X-RateRequestsRemaining", out requestsRemainingValue) &&
-                response.Headers.TryGetValues("X-RatePeriodEnd", out ratePeriodEndValue))
-            {
-                if (!int.TryParse(maxRequestsValue.First(), out maxRequestCount) ||
-                    !int.TryParse(requestsRemainingValue.First(), out rateRequestsRemaining) ||
-                    !int.TryParse(ratePeriodEndValue.FirstOrDefault(), out ratePeriodEndSeconds))
+                try
                 {
-                    throw new PokeHashException("Failed parsing pokehash response header values.");
+                    var availableKeys = _authKeys.Where(x => x.Requests < x.MaxRequestCount).ToArray();
+                    if (availableKeys.Length > 0)
+                    {
+                        authKey = availableKeys.First();
+                        authKey.Requests += 1;
+                    }
+                    else
+                    {
+                        authKey = _authKeys
+                            .OrderBy(x => x.RatePeriodEnd)
+                            .First();
+                        // Rate limit is over, so reset requests.
+                        authKey.Requests = 0;
+                    }
+
+                    // Add hashkey
+                    requestContent.Headers.Add("X-AuthToken", authKey.AuthKey);
+
+                    // Initialize HttpClient.
+                    using (var _httpClient = new HttpClient
+                    {
+                        BaseAddress = GetHashUri(authKey.AuthKey)
+                    })
+                    {
+                        _httpClient.DefaultRequestHeaders.Clear();
+                        _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                        _httpClient.DefaultRequestHeaders.UserAgent.TryParseAdd("POGOLib.Core (https://github.com/Furtif/POGOLib)");
+                        response = await _httpClient.PostAsync(Configuration.HashEndpoint, requestContent);
+                        _httpClient.Dispose();
+                    };
+
+                    // Parse headers
+                    int maxRequestCount;
+                    int rateRequestsRemaining;
+                    int ratePeriodEndSeconds;
+
+                    IEnumerable<string> maxRequestsValue;
+                    IEnumerable<string> requestsRemainingValue;
+                    IEnumerable<string> ratePeriodEndValue;
+                    if (response.Headers.TryGetValues("X-MaxRequestCount", out maxRequestsValue) &&
+                        response.Headers.TryGetValues("X-RateRequestsRemaining", out requestsRemainingValue) &&
+                        response.Headers.TryGetValues("X-RatePeriodEnd", out ratePeriodEndValue))
+                    {
+                        if (!int.TryParse(maxRequestsValue.First(), out maxRequestCount) ||
+                            !int.TryParse(requestsRemainingValue.First(), out rateRequestsRemaining) ||
+                            !int.TryParse(ratePeriodEndValue.FirstOrDefault(), out ratePeriodEndSeconds))
+                        {
+                            throw new PokeHashException("Failed parsing pokehash response header values.");
+                        }
+                    }
+                    else
+                    {
+                        throw new PokeHashException("Failed parsing pokehash response headers.");
+                    }
+
+                    // Use parsed headers
+                    if (!authKey.IsInitialized)
+                    {
+                        authKey.MaxRequestCount = maxRequestCount;
+                        authKey.Requests = authKey.MaxRequestCount - rateRequestsRemaining;
+                        authKey.IsInitialized = true;
+                    }
+
+                    var ratePeriodEnd = TimeUtil.GetDateTimeFromSeconds(ratePeriodEndSeconds);
+                    if (ratePeriodEnd > authKey.RatePeriodEnd)
+                    {
+                        authKey.RatePeriodEnd = ratePeriodEnd;
+                    }
+
+                    if (response == null)
+                        throw new PokeHashException("Missed hash response Data");
+
+                    return response;
                 }
-            }
-            else
-            {
-                throw new PokeHashException("Failed parsing pokehash response headers.");
-            }
+                catch
+                {
+                    await Task.Delay(1000);
+                    continue;
+                }
+                finally
+                {
+                    _keySelection.Release();
+                    retries--;
+                }
+            } while (retries > 0);
 
-            // Use parsed headers
-            if (!authKey.IsInitialized)
-            {
-                authKey.MaxRequestCount = maxRequestCount;
-                authKey.Requests = authKey.MaxRequestCount - rateRequestsRemaining;
-                authKey.IsInitialized = true;
-            }
-
-            var ratePeriodEnd = TimeUtil.GetDateTimeFromSeconds(ratePeriodEndSeconds);
-            if (ratePeriodEnd > authKey.RatePeriodEnd)
-            {
-                authKey.RatePeriodEnd = ratePeriodEnd;
-            }
-
-            _keySelection.Release();
-
-            if (response == null)
-                throw new PokeHashException("Missed response Data");
-
-            return response;
+            throw new PokeHashException("Hash API server might be down.");
         }
 
         public byte[] GetEncryptedSignature(byte[] signatureBytes, uint timestampSinceStartMs)
         {
             return PCryptPokeHash.Encrypt(signatureBytes, timestampSinceStartMs);
         }
-
-        public event EventHandler<int> PokehashSleeping;
     }
 }
