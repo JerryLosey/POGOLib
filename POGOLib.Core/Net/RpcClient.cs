@@ -117,22 +117,15 @@ namespace POGOLib.Official.Net
         // NOTE: this is the new login process in the real app, after of 0.45 API
         internal async Task<bool> StartupAsync()
         {
-            
-            
             // Empty request. To change the _requestUrl variable.
-            var response = await SendRemoteProcedureCallAsync( false);
-            if (response == null){
-                _session.Logger.Warn("Pokemon Go service as maybe issues, Please try later");
-                return false;
-            }
-
+            await SendRemoteProcedureCallAsync(PlatformRequestType.MethodUnset);
 
             GetPlayerResponse playerResponse;
             int loop = 0;
 
             do
             {
-                response = await SendRemoteProcedureCallAsync(new Request
+                var response = await SendRemoteProcedureCallAsync(new Request
                 {
                     RequestType = RequestType.GetPlayer,
                     RequestMessage = new GetPlayerMessage
@@ -176,11 +169,7 @@ namespace POGOLib.Official.Net
             //
 
             //GetStoreItems
-            response = await SendRemoteProcedureCallAsync( true);
-            if (response == null){
-                _session.Logger.Warn("Pokemon Go service as maybe issues, Please try later");
-                return false;
-            }
+            await SendRemoteProcedureCallAsync(PlatformRequestType.GetStoreItems);
 
             return true;
         }
@@ -364,10 +353,10 @@ namespace POGOLib.Official.Net
                 Longitude = _session.Player.Coordinate.Longitude
             };
 
-            if (request != null  && request.FirstOrDefault().RequestType != RequestType.MethodUnset )
+            if (request != null && request.FirstOrDefault().RequestType != RequestType.MethodUnset)
             {
                 requestEnvelope.Requests.AddRange(request);
-    
+
                 if (addDefaultRequests)
                     requestEnvelope.Requests.AddRange(GetDefaultRequests(nobuddy, noinbox));
             }
@@ -418,7 +407,7 @@ namespace POGOLib.Official.Net
                         }.ToByteString()
                     });
                 }
-                
+
             }
 
             return requestEnvelope;
@@ -432,15 +421,34 @@ namespace POGOLib.Official.Net
             });
         }
 
-        public async Task<ByteString> SendRemoteProcedureCallAsync(bool addstoreitemsplatform = false)
+        public async Task<ByteString> SendRemoteProcedureCallAsync(PlatformRequestType type = PlatformRequestType.MethodUnset)
         {
-            var requestEnvelope = await GetRequestEnvelopeAsync(null,false);
-            if (addstoreitemsplatform) {
-                requestEnvelope.PlatformRequests.Add(new RequestEnvelope.Types.PlatformRequest {
-                    Type = PlatformRequestType.GetStoreItems,
-                    RequestMessage = new GetStoreItemsRequest().ToByteString()
-                });
+            var requestEnvelope = await GetRequestEnvelopeAsync(null, false);
+            switch (type)
+            {
+                case PlatformRequestType.BuyItemAndroid:
+                    break;
+                case PlatformRequestType.BuyItemIos:
+                    break;
+                case PlatformRequestType.BuyItemPokecoins:
+                    break;
+                case PlatformRequestType.GetStoreItems:
+                    requestEnvelope.PlatformRequests.Add(new RequestEnvelope.Types.PlatformRequest
+                    {
+                        Type = PlatformRequestType.GetStoreItems,
+                        RequestMessage = new GetStoreItemsRequest().ToByteString()
+                    });
+                    break;
+                case PlatformRequestType.JoinEvent:
+                    break;
+                case PlatformRequestType.MethodUnset:
+                    break;
+                case PlatformRequestType.SendEncryptedSignature:
+                    break;
+                case PlatformRequestType.UnknownPtr8:
+                    break;
             }
+
             return await SendRemoteProcedureCall(requestEnvelope);
         }
 
@@ -456,6 +464,19 @@ namespace POGOLib.Official.Net
 
         private Task<ByteString> SendRemoteProcedureCall(RequestEnvelope requestEnvelope)
         {
+            if (requestEnvelope.Requests.Count() == 0)
+            {
+                return Task.Run(async () =>
+                {
+                    _rpcResponses.GetOrAdd(requestEnvelope, await PerformRemoteProcedureCallAsync(requestEnvelope));
+
+                    ByteString req;
+                    _rpcResponses.TryRemove(requestEnvelope, out req);
+
+                    return req;
+                });
+            }
+
             if (requestEnvelope.Requests.FirstOrDefault().RequestType == RequestType.VerifyChallenge)
             {
                 return Task.Run(async () =>
@@ -645,28 +666,29 @@ namespace POGOLib.Official.Net
                         }
 
                         LastRpcRequest = DateTime.UtcNow;
-
-                        if (requestEnvelope.Requests[0].RequestType == RequestType.GetMapObjects)
+                        if (requestEnvelope.Requests.Count > 0)
                         {
-                            LastRpcMapObjectsRequest = LastRpcRequest;
-                            LastGeoCoordinateMapObjectsRequest = _session.Player.Coordinate;
+                            if (requestEnvelope.Requests[0].RequestType == RequestType.GetMapObjects)
+                            {
+                                LastRpcMapObjectsRequest = LastRpcRequest;
+                                LastGeoCoordinateMapObjectsRequest = _session.Player.Coordinate;
+                            }
+
+                            if (responseEnvelope.AuthTicket != null)
+                            {
+                                _session.AccessToken.AuthTicket = responseEnvelope.AuthTicket;
+                                _session.Logger.Debug("Received a new AuthTicket from Pokemon!");
+                            }
+
+                            var mapPlatform = responseEnvelope.PlatformReturns.FirstOrDefault(x => x.Type == PlatformRequestType.UnknownPtr8);
+                            if (mapPlatform != null)
+                            {
+                                var unknownPtr8Response = UnknownPtr8Response.Parser.ParseFrom(mapPlatform.Response);
+                                _mapKey = unknownPtr8Response.Message;
+                            }
+
+                            retries = 0;
                         }
-
-                        if (responseEnvelope.AuthTicket != null)
-                        {
-                            _session.AccessToken.AuthTicket = responseEnvelope.AuthTicket;
-                            _session.Logger.Debug("Received a new AuthTicket from Pokemon!");
-                        }
-
-                        var mapPlatform = responseEnvelope.PlatformReturns.FirstOrDefault(x => x.Type == PlatformRequestType.UnknownPtr8);
-                        if (mapPlatform != null)
-                        {
-                            var unknownPtr8Response = UnknownPtr8Response.Parser.ParseFrom(mapPlatform.Response);
-                            _mapKey = unknownPtr8Response.Message;
-                        }
-
-                        retries = 0;
-
                         return HandleResponseEnvelope(requestEnvelope, responseEnvelope);
                     }
                 }
@@ -733,21 +755,28 @@ namespace POGOLib.Official.Net
         /// <returns>Returns the <see cref="ByteString" />response of the <see cref="Request"/>.</returns>
         private ByteString HandleResponseEnvelope(RequestEnvelope requestEnvelope, ResponseEnvelope responseEnvelope)
         {
-            if (responseEnvelope.Returns.Count == 0)
+            //if (responseEnvelope.Returns.Count == 0)
+            //{
+            //    throw new Exception("There were 0 responses.");
+            //}
+
+            if (requestEnvelope.Requests.Count > 0)
             {
-                throw new Exception("There were 0 responses.");
+                // Take requested response and remove from returns.
+                var requestResponse = responseEnvelope.Returns[0];
+
+                // Handle the default responses.
+                HandleDefaultResponses(requestEnvelope, responseEnvelope.Returns);
+
+                // Handle the default responses.
+                HandleDefaultResponses(requestEnvelope, responseEnvelope.Returns);
+
+                // Handle responses which affect the inventory
+                HandleInventoryResponses(requestEnvelope.Requests[0], requestResponse);
+
+                return requestResponse;
             }
-
-            // Take requested response and remove from returns.
-            var requestResponse = responseEnvelope.Returns[0];
-
-            // Handle the default responses.
-            HandleDefaultResponses(requestEnvelope, responseEnvelope.Returns);
-
-            // Handle responses which affect the inventory
-            HandleInventoryResponses(requestEnvelope.Requests[0], requestResponse);
-
-            return requestResponse;
+            return null;
         }
 
         private void HandleInventoryResponses(Request request, ByteString requestResponse)
@@ -1164,87 +1193,6 @@ namespace POGOLib.Official.Net
 
                 if (_session.ManageRessources)
                     _session.OnUrlsReceived(dowloadUrls);
-            }
-        }
-
-        private async Task PlatformRequest(RequestEnvelope.Types.PlatformRequest platformRequest)
-        {
-            try
-            {
-                ByteArrayContent requestData = null;
-                if (platformRequest.Type != PlatformRequestType.MethodUnset)
-                {
-                    requestData = new ByteArrayContent(platformRequest.ToByteArray());
-                    _session.Logger.Debug("=> Platform Request: '" + string.Join(", ", platformRequest.Type) + "'");
-                }
-                else
-                {
-                    requestData = new ByteArrayContent(new byte[] { });
-                    _session.Logger.Debug("Echo server...");
-                }
-
-                using (var response = await _session.HttpClient.PostAsync(_requestUrl ?? Constants.ApiUrl, requestData))
-                {
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        _session.Logger.Debug(await response.Content.ReadAsStringAsync());
-
-                        throw new Exception("Received a non-success HTTP status code from the RPC server, see the console for the response.");
-                    }
-
-                    var responseBytes = await response.Content.ReadAsByteArrayAsync();
-                    var responseEnvelope = ResponseEnvelope.Parser.ParseFrom(responseBytes);
-
-                    switch (responseEnvelope.StatusCode)
-                    {
-                        // Valid response.
-                        case ResponseEnvelope.Types.StatusCode.Ok:
-                            // Success!?
-                            break;
-
-                        // Valid response and new rpc url.
-                        case ResponseEnvelope.Types.StatusCode.OkRpcUrlInResponse:
-                            if (Regex.IsMatch(responseEnvelope.ApiUrl, "pgorelease\\.nianticlabs\\.com\\/plfe\\/\\d+"))
-                            {
-                                _requestUrl = $"https://{responseEnvelope.ApiUrl}/rpc";
-                            }
-                            else
-                            {
-                                throw new Exception($"Received an incorrect API url: '{responseEnvelope.ApiUrl}', status code was: '{responseEnvelope.StatusCode}'.");
-                            }
-                            break;
-
-                        // A new rpc endpoint is available.
-                        case ResponseEnvelope.Types.StatusCode.Redirect:
-                            if (Regex.IsMatch(responseEnvelope.ApiUrl, "pgorelease\\.nianticlabs\\.com\\/plfe\\/\\d+"))
-                            {
-                                _requestUrl = $"https://{responseEnvelope.ApiUrl}/rpc";
-                                break;
-                            }
-                            _session.Logger.Debug($"Received an incorrect API url: '{responseEnvelope.ApiUrl}', status code was: '{responseEnvelope.StatusCode}'.");
-                            break;
-                        case ResponseEnvelope.Types.StatusCode.InvalidAuthToken:
-                            _session.Logger.Debug("Received StatusCode 102, reauthenticating.");
-                            _session.AccessToken.Expire();
-                            await _session.Reauthenticate();
-                            //re-send
-                            await PlatformRequest(platformRequest);
-                            break;
-                        /*case ResponseEnvelope.Types.StatusCode.SessionInvalidated:
-                            break;
-                        case ResponseEnvelope.Types.StatusCode.InvalidPlatformRequest:
-                            break;*/
-                        default:
-                            _session.Logger.Debug($"Status code was: '{responseEnvelope.StatusCode}'.");
-                            break;
-                    }
-
-                    LastRpcRequest = DateTime.UtcNow;
-                }
-            }
-            catch (Exception ex)
-            {
-                throw new SessionStateException($"Your account may be temporary banned! please try from the official client." + ex);
             }
         }
     }

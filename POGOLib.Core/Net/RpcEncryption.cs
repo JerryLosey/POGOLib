@@ -234,6 +234,6 @@ namespace POGOLib.Official.Net
             };
 
             return encryptedSignature;
-        }       
+        }
     }
 }
