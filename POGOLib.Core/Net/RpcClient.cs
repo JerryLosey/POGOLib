@@ -118,10 +118,10 @@ namespace POGOLib.Official.Net
         internal async Task<bool> StartupAsync()
         {
             //Got to set OkRpcUrlInResponse
-            await PlatformRequest(new RequestEnvelope.Types.PlatformRequest()
+            /*await PlatformRequest(new RequestEnvelope.Types.PlatformRequest()
             {
                 Type = PlatformRequestType.MethodUnset
-            });
+            });*/
 
             GetPlayerResponse playerResponse;
             int loop = 0;
@@ -172,14 +172,14 @@ namespace POGOLib.Official.Net
             //
 
             //GetStoreItems
-            await PlatformRequest(new RequestEnvelope.Types.PlatformRequest()
+            /*await PlatformRequest(new RequestEnvelope.Types.PlatformRequest()
             {
                 Type = PlatformRequestType.GetStoreItems,
                 RequestMessage = new GetStoreItemsRequest
                 {
                     //
                 }.ToByteString()
-            });
+            });*/
 
             return true;
         }
@@ -1213,10 +1213,10 @@ namespace POGOLib.Official.Net
                             //re-send
                             await PlatformRequest(platformRequest);
                             break;
-                        case ResponseEnvelope.Types.StatusCode.SessionInvalidated:
+                        /*case ResponseEnvelope.Types.StatusCode.SessionInvalidated:
                             break;
                         case ResponseEnvelope.Types.StatusCode.InvalidPlatformRequest:
-                            break;
+                            break;*/
                         default:
                             _session.Logger.Debug($"Status code was: '{responseEnvelope.StatusCode}'.");
                             break;
