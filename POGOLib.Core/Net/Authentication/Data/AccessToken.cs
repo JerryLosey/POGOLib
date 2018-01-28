@@ -13,7 +13,7 @@ namespace POGOLib.Official.Net.Authentication.Data
         public string Username { get; set; }
 
         [JsonProperty("token", Required = Required.Always)]
-        public string Token { get; set; } = String.Empty;
+        public string Token { get; set; }
 
         [JsonProperty("expiry", Required = Required.Always)]
         public DateTime Expiry { get; set; }

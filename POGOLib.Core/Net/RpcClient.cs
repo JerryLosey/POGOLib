@@ -558,13 +558,7 @@ namespace POGOLib.Official.Net
                                 await _session.Reauthenticate();
 
                                 // Apply new token.
-                                if (_session.AccessToken.AuthTicket != null && _session.AccessToken.AuthTicket.ExpireTimestampMs < ((ulong)TimeUtil.GetCurrentTimestampInMilliseconds() - (60000 * 2)))
-                                {
-                                    // Check for almost expired AuthTicket (2 minute buffer). Null out the AuthTicket so that AccessToken is used.
-                                    _session.AccessToken.AuthTicket = null;
-                                }
-
-                                var token = string.IsNullOrEmpty(_session.AccessToken?.Token) ? String.Empty : _session.AccessToken?.Token;
+                               var token = string.IsNullOrEmpty(_session.AccessToken?.Token) ? String.Empty : _session.AccessToken?.Token;
 
                                 requestEnvelope.AuthInfo = new RequestEnvelope.Types.AuthInfo
                                 {
@@ -575,7 +569,6 @@ namespace POGOLib.Official.Net
                                         Unknown2 = 59
                                     }
                                 };
-                                //requestEnvelope.AuthTicket = _session.AccessToken.AuthTicket;
 
                                 // Clear all PlatformRequests.
                                 requestEnvelope.PlatformRequests.Clear();
@@ -596,8 +589,9 @@ namespace POGOLib.Official.Net
                                 }
                                 // Apply new PlatformRequests to envelope.
                                 requestEnvelope.PlatformRequests.Add(await _rpcEncryption.GenerateSignatureAsync(requestEnvelope));
+                                
                                 // Re-send envelope.
-                                return await PerformRemoteProcedureCallAsync(requestEnvelope);
+                               return await PerformRemoteProcedureCallAsync(requestEnvelope);
                             case ResponseEnvelope.Types.StatusCode.BadRequest:
                                 // Your account may be banned! please try from the official client.
                                 throw new APIBadRequestException("BAD REQUEST");
@@ -1098,7 +1092,7 @@ namespace POGOLib.Official.Net
 
             if (_session.Templates.AssetDigests == null)
             {
-                _session.Logger.Warn("AssetDigests values needed for GetDownloadUrls is empty, skip request.");               
+                _session.Logger.Warn("AssetDigests values needed for GetDownloadUrls is empty, skip request.");
                 return;
             }
 
