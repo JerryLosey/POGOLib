@@ -65,7 +65,7 @@ namespace POGOLib.Official.LoginProviders
                     httpClient.DefaultRequestHeaders.TryAddWithoutValidation("X-Unity-Version", "2017.1.2f1"); //"5.5.1f1";//"5.6.1f1";
                     httpClient.Timeout.Add(new TimeSpan(0, 10, 0));
                     var logout = await LogOut(httpClient);
-                    var loginData = await GetLoginData(httpClient);
+                    var loginData = await GetLoginData(httpClient, language.Replace("-", "_"));
                     var ticket = await PostLogin(httpClient, _username, _password, loginData, httpClientHandler.CookieContainer, language.Replace("-", "_"));
                     var accessToken = await PostLoginOauth(httpClient, ticket);
                     accessToken.Username = _username;
@@ -100,7 +100,7 @@ namespace POGOLib.Official.LoginProviders
         /// </summary>
         /// <param name="httpClient">An initialized <see cref="HttpClient" />.</param>
         /// <returns><see cref="LoginData" /> for <see cref="PostLogin" />.</returns>
-        private async Task<LoginData> GetLoginData(HttpClient httpClient)
+        private async Task<LoginData> GetLoginData(HttpClient httpClient, string language)
         {
             var uriBuilder = new UriBuilder("https://sso.pokemon.com/sso/login")
             {
@@ -109,7 +109,7 @@ namespace POGOLib.Official.LoginProviders
                 Query = await new FormUrlEncodedContent(new Dictionary<string, string>
                 {
                     {"service", "https://sso.pokemon.com/sso/oauth2.0/callbackAuthorize" },
-                    {"locale",  "en_US"}
+                    {"locale",  language}
                 }).ReadAsStringAsync()
             };
             var loginDataResponse = await httpClient.GetAsync(uriBuilder.ToString());
@@ -138,7 +138,7 @@ namespace POGOLib.Official.LoginProviders
                 Port = -1,
                 Query = await new FormUrlEncodedContent(new Dictionary<string, string> {
                      {"service", "https://sso.pokemon.com/sso/oauth2.0/callbackAuthorize"} ,
-                     {"locale", "en_US"}
+                     {"locale", language}
                     }).ReadAsStringAsync()
             };
             var loginResponse =
