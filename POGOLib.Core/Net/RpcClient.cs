@@ -118,7 +118,7 @@ namespace POGOLib.Official.Net
         internal async Task<bool> StartupAsync()
         {
             // Empty request. To change the _requestUrl variable.
-            await SendRemoteProcedureCallAsync(PlatformRequestType.MethodUnset);
+            await SendRemoteProcedureCallAsync();
 
             GetPlayerResponse playerResponse;
             int loop = 0;
@@ -465,20 +465,10 @@ namespace POGOLib.Official.Net
 
         private Task<ByteString> SendRemoteProcedureCall(RequestEnvelope requestEnvelope)
         {
-            if (requestEnvelope.Requests.Count() == 0)
-            {
-                return Task.Run(async () =>
-                {
-                    _rpcResponses.GetOrAdd(requestEnvelope, await PerformRemoteProcedureCallAsync(requestEnvelope));
 
-                    ByteString req;
-                    _rpcResponses.TryRemove(requestEnvelope, out req);
-
-                    return req;
-                });
-            }
-
-            if (requestEnvelope.Requests.FirstOrDefault().RequestType == RequestType.VerifyChallenge)
+            if ( !requestEnvelope.Requests.Any() 
+                || (requestEnvelope.Requests.FirstOrDefault()?.RequestType == RequestType.VerifyChallenge)
+               )
             {
                 return Task.Run(async () =>
                 {
