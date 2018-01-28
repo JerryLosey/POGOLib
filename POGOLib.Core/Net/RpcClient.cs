@@ -1163,7 +1163,7 @@ namespace POGOLib.Official.Net
                 else
                 {
                     requestData = new ByteArrayContent(new byte[] { });
-                    _session.Logger.Debug("=> Platform Request: 'Empty'");
+                    _session.Logger.Debug("Echo server...");
                 }
 
                 using (var response = await _session.HttpClient.PostAsync(_requestUrl ?? Constants.ApiUrl, requestData))
