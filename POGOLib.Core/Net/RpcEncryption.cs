@@ -64,8 +64,9 @@ namespace POGOLib.Official.Net
         {
             var locationFixes = new List<LocationFix>();
 
-            if (requestEnvelope.Requests.Count == 0 || requestEnvelope.Requests[0] == null)
-                return locationFixes;
+            // TODO: review this. those two lines are removed to can do empty requests
+            //if (requestEnvelope.Requests.Count == 0 || requestEnvelope.Requests[0] == null)
+            //    return locationFixes;
 
             // Determine amount of location fixes.
             //      We look for the amount of seconds that have passed since the last location fixes request.
