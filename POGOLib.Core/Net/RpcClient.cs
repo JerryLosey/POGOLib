@@ -117,12 +117,12 @@ namespace POGOLib.Official.Net
         // NOTE: this is the new login process in the real app, after of 0.45 API
         internal async Task<bool> StartupAsync()
         {
-            //Got to set OkRpcUrlInResponse
-            await PlatformRequest(new RequestEnvelope.Types.PlatformRequest()
-            {
-                Type = PlatformRequestType.MethodUnset
-            });
+            //await EmptyRequest(); // TODO: review this call, is failing
+            // and the real app does it to receive the "OkRpcUrlInResponse"
+            // currently we does it calling to getplayer, that this call will 
+            // be repeared at receive the "OkRpcUrlInResponse"
 
+            // Send GetPlayer to check if we're connected and authenticated
             GetPlayerResponse playerResponse;
             int loop = 0;
 
@@ -167,19 +167,6 @@ namespace POGOLib.Official.Net
             await GetAssetDigest();
             await DownloadItemTemplates();
             await GetDownloadURLs();
-
-            //Here tutorial
-            //
-
-            //GetStoreItems
-            await PlatformRequest(new RequestEnvelope.Types.PlatformRequest()
-            {
-                Type = PlatformRequestType.GetStoreItems,
-                RequestMessage = new GetStoreItemsRequest
-                {
-                    //
-                }.ToByteString()
-            });
 
             return true;
         }
@@ -492,8 +479,6 @@ namespace POGOLib.Official.Net
             });
         }
 
-        private int retries = 0;
-
         private async Task<ByteString> PerformRemoteProcedureCallAsync(RequestEnvelope requestEnvelope)
         {
             try
@@ -569,16 +554,11 @@ namespace POGOLib.Official.Net
                             case ResponseEnvelope.Types.StatusCode.InvalidAuthToken:
                                 _session.Logger.Debug("Received StatusCode 102, reauthenticating.");
 
-                                if (retries >= 10)
-                                    throw new SessionStateException("Received StatusCode 102, reauthenticating. Can not refresh token.");
-
-                                ++retries;
-
                                 _session.AccessToken.Expire();
                                 await _session.Reauthenticate();
 
                                 // Apply new token.
-                                var token = string.IsNullOrEmpty(_session.AccessToken?.Token) ? String.Empty : _session.AccessToken?.Token;
+                               var token = string.IsNullOrEmpty(_session.AccessToken?.Token) ? String.Empty : _session.AccessToken?.Token;
 
                                 requestEnvelope.AuthInfo = new RequestEnvelope.Types.AuthInfo
                                 {
@@ -609,9 +589,9 @@ namespace POGOLib.Official.Net
                                 }
                                 // Apply new PlatformRequests to envelope.
                                 requestEnvelope.PlatformRequests.Add(await _rpcEncryption.GenerateSignatureAsync(requestEnvelope));
-
+                                
                                 // Re-send envelope.
-                                return await PerformRemoteProcedureCallAsync(requestEnvelope);
+                               return await PerformRemoteProcedureCallAsync(requestEnvelope);
                             case ResponseEnvelope.Types.StatusCode.BadRequest:
                                 // Your account may be banned! please try from the official client.
                                 throw new APIBadRequestException("BAD REQUEST");
@@ -648,7 +628,6 @@ namespace POGOLib.Official.Net
                             _mapKey = unknownPtr8Response.Message;
                         }
 
-                        retries = 0;
                         return HandleResponseEnvelope(requestEnvelope, responseEnvelope);
                     }
                 }
@@ -922,6 +901,13 @@ namespace POGOLib.Official.Net
             _rpcQueueMutex?.Dispose();
         }
 
+        // TODO: review this call, is failing in line 124 .
+        private async Task EmptyRequest()
+        {
+            var response = await SendRemoteProcedureCallAsync(new[] { new Request() });
+            _session.Logger.Debug("EmptyRequest response:" + response.ToString());
+        }
+
         private async Task DownloadRemoteConfig()
         {
             var request = new Request
@@ -1146,87 +1132,6 @@ namespace POGOLib.Official.Net
 
                 if (_session.ManageRessources)
                     _session.OnUrlsReceived(dowloadUrls);
-            }
-        }
-
-        private async Task PlatformRequest(RequestEnvelope.Types.PlatformRequest platformRequest)
-        {
-            try
-            {
-                ByteArrayContent requestData = null;
-                if (platformRequest.Type != PlatformRequestType.MethodUnset)
-                {
-                    requestData = new ByteArrayContent(platformRequest.ToByteArray());
-                    _session.Logger.Debug("=> Platform Request: '" + string.Join(", ", platformRequest.Type) + "'");
-                }
-                else
-                {
-                    requestData = new ByteArrayContent(new byte[] { });
-                    _session.Logger.Debug("=> Platform Request: 'Empty'");
-                }
-
-                using (var response = await _session.HttpClient.PostAsync(_requestUrl ?? Constants.ApiUrl, requestData))
-                {
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        _session.Logger.Debug(await response.Content.ReadAsStringAsync());
-
-                        throw new Exception("Received a non-success HTTP status code from the RPC server, see the console for the response.");
-                    }
-
-                    var responseBytes = await response.Content.ReadAsByteArrayAsync();
-                    var responseEnvelope = ResponseEnvelope.Parser.ParseFrom(responseBytes);
-
-                    switch (responseEnvelope.StatusCode)
-                    {
-                        // Valid response.
-                        case ResponseEnvelope.Types.StatusCode.Ok:
-                            // Success!?
-                            break;
-
-                        // Valid response and new rpc url.
-                        case ResponseEnvelope.Types.StatusCode.OkRpcUrlInResponse:
-                            if (Regex.IsMatch(responseEnvelope.ApiUrl, "pgorelease\\.nianticlabs\\.com\\/plfe\\/\\d+"))
-                            {
-                                _requestUrl = $"https://{responseEnvelope.ApiUrl}/rpc";
-                            }
-                            else
-                            {
-                                throw new Exception($"Received an incorrect API url: '{responseEnvelope.ApiUrl}', status code was: '{responseEnvelope.StatusCode}'.");
-                            }
-                            break;
-
-                        // A new rpc endpoint is available.
-                        case ResponseEnvelope.Types.StatusCode.Redirect:
-                            if (Regex.IsMatch(responseEnvelope.ApiUrl, "pgorelease\\.nianticlabs\\.com\\/plfe\\/\\d+"))
-                            {
-                                _requestUrl = $"https://{responseEnvelope.ApiUrl}/rpc";
-                                break;
-                            }
-                            _session.Logger.Debug($"Received an incorrect API url: '{responseEnvelope.ApiUrl}', status code was: '{responseEnvelope.StatusCode}'.");
-                            break;
-                        case ResponseEnvelope.Types.StatusCode.InvalidAuthToken:
-                            _session.Logger.Debug("Received StatusCode 102, reauthenticating.");
-                            _session.AccessToken.Expire();
-                            await _session.Reauthenticate();
-                            //re-send
-                            await PlatformRequest(platformRequest);
-                            break;
-                        case ResponseEnvelope.Types.StatusCode.SessionInvalidated:
-                            break;
-                        case ResponseEnvelope.Types.StatusCode.InvalidPlatformRequest:
-                            break;
-                        default:
-                            _session.Logger.Debug($"Status code was: '{responseEnvelope.StatusCode}'.");
-                            break;
-                    }
-
-                    LastRpcRequest = DateTime.UtcNow;
-                }
-            }
-            catch (Exception ex)
-            {
-                throw new SessionStateException($"Your account may be temporary banned! please try from the official client." + ex);
             }
         }
     }
