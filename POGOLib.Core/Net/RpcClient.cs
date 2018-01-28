@@ -424,6 +424,7 @@ namespace POGOLib.Official.Net
         public async Task<ByteString> SendRemoteProcedureCallAsync(PlatformRequestType type = PlatformRequestType.MethodUnset)
         {
             var requestEnvelope = await GetRequestEnvelopeAsync(null, false);
+
             switch (type)
             {
                 case PlatformRequestType.BuyItemAndroid:
