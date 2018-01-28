@@ -117,18 +117,22 @@ namespace POGOLib.Official.Net
         // NOTE: this is the new login process in the real app, after of 0.45 API
         internal async Task<bool> StartupAsync()
         {
-            //Got to set OkRpcUrlInResponse
-            await PlatformRequest(new RequestEnvelope.Types.PlatformRequest()
-            {
-                Type = PlatformRequestType.MethodUnset
-            });
+            
+            
+            // Empty request. To change the _requestUrl variable.
+            var response = await SendRemoteProcedureCallAsync( false);
+            if (response == null){
+                _session.Logger.Warn("Pokemon Go service as maybe issues, Please try later");
+                return false;
+            }
+
 
             GetPlayerResponse playerResponse;
             int loop = 0;
 
             do
             {
-                var response = await SendRemoteProcedureCallAsync(new Request
+                response = await SendRemoteProcedureCallAsync(new Request
                 {
                     RequestType = RequestType.GetPlayer,
                     RequestMessage = new GetPlayerMessage
@@ -172,14 +176,11 @@ namespace POGOLib.Official.Net
             //
 
             //GetStoreItems
-            await PlatformRequest(new RequestEnvelope.Types.PlatformRequest()
-            {
-                Type = PlatformRequestType.GetStoreItems,
-                RequestMessage = new GetStoreItemsRequest
-                {
-                    //
-                }.ToByteString()
-            });
+            response = await SendRemoteProcedureCallAsync( true);
+            if (response == null){
+                _session.Logger.Warn("Pokemon Go service as maybe issues, Please try later");
+                return false;
+            }
 
             return true;
         }
@@ -363,10 +364,13 @@ namespace POGOLib.Official.Net
                 Longitude = _session.Player.Coordinate.Longitude
             };
 
-            requestEnvelope.Requests.AddRange(request);
-
-            if (addDefaultRequests)
-                requestEnvelope.Requests.AddRange(GetDefaultRequests(nobuddy, noinbox));
+            if (request != null  && request.FirstOrDefault().RequestType != RequestType.MethodUnset )
+            {
+                requestEnvelope.Requests.AddRange(request);
+    
+                if (addDefaultRequests)
+                    requestEnvelope.Requests.AddRange(GetDefaultRequests(nobuddy, noinbox));
+            }
 
             if (_session.AccessToken.AuthTicket != null && _session.AccessToken.AuthTicket.ExpireTimestampMs < ((ulong)TimeUtil.GetCurrentTimestampInMilliseconds() - (60000 * 2)))
             {
@@ -414,6 +418,7 @@ namespace POGOLib.Official.Net
                         }.ToByteString()
                     });
                 }
+                
             }
 
             return requestEnvelope;
@@ -425,6 +430,18 @@ namespace POGOLib.Official.Net
             {
                 RequestType = requestType
             });
+        }
+
+        public async Task<ByteString> SendRemoteProcedureCallAsync(bool addstoreitemsplatform = false)
+        {
+            var requestEnvelope = await GetRequestEnvelopeAsync(null,false);
+            if (addstoreitemsplatform) {
+                requestEnvelope.PlatformRequests.Add(new RequestEnvelope.Types.PlatformRequest {
+                    Type = PlatformRequestType.GetStoreItems,
+                    RequestMessage = new GetStoreItemsRequest().ToByteString()
+                });
+            }
+            return await SendRemoteProcedureCall(requestEnvelope);
         }
 
         public async Task<ByteString> SendRemoteProcedureCallAsync(Request request, bool addDefaultRequests = true, bool nobuddy = false, bool noinbox = false)
