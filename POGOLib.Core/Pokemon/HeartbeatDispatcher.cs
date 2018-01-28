@@ -40,7 +40,7 @@ namespace POGOLib.Official.Pokemon
                     var maxSeconds = _session.GlobalSettings.MapSettings.GetMapObjectsMaxRefreshSeconds;
                     var minDistance = _session.GlobalSettings.MapSettings.GetMapObjectsMinDistanceMeters;
                     var lastGeoCoordinate = _session.RpcClient.LastGeoCoordinateMapObjectsRequest;
-                    var secondsSinceLast = DateTime.UtcNow.Subtract(_session.RpcClient.LastRpcMapObjectsRequest).Seconds;
+                    var secondsSinceLast = DateTime.UtcNow.Subtract(_session.RpcClient.LastRpcMapObjectsRequest).TotalSeconds;// Seconds;
 
                     if (lastGeoCoordinate.IsUnknown)
                     {
