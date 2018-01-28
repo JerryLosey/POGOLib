@@ -305,6 +305,10 @@ namespace POGOLib.Official.Net
                     {
                         throw new PtcLoginException(ex.Message);
                     }
+                    catch (GoogleLoginException ex)
+                    {
+                        throw new GoogleLoginException(ex.Message);
+                    }
                     catch (Exception exception)
                     {
                         Logger.Error($"Reauthenticate exception was catched: {exception}");
