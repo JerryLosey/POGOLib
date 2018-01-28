@@ -539,6 +539,9 @@ namespace POGOLib.Official.Net
                 {
                     using (var response = await _session.HttpClient.PostAsync(_requestUrl ?? Constants.ApiUrl, requestData))
                     {
+                        _session.Logger.Debug("Sending RPC Request: '" + string.Join(", ", requestEnvelope.Requests.Select(x => x.RequestType)) + "'");
+                        _session.Logger.Debug("=> Platform Request: '" + string.Join(", ", requestEnvelope.PlatformRequests.Select(x => x.Type)) + "'");
+
                         if (!response.IsSuccessStatusCode)
                         {
                             _session.Logger.Warn(await response.Content.ReadAsStringAsync());
@@ -663,9 +666,6 @@ namespace POGOLib.Official.Net
                         }
 
                         retries = 0;
-
-                        _session.Logger.Debug("Sending RPC Request: '" + string.Join(", ", requestEnvelope.Requests.Select(x => x.RequestType)) + "'");
-                        _session.Logger.Debug("=> Platform Request: '" + string.Join(", ", requestEnvelope.PlatformRequests.Select(x => x.Type)) + "'");
 
                         return HandleResponseEnvelope(requestEnvelope, responseEnvelope);
                     }
@@ -1180,7 +1180,7 @@ namespace POGOLib.Official.Net
                 else
                 {
                     requestData = new ByteArrayContent(new byte[] { });
-                    _session.Logger.Debug("=> Platform Request: 'Empty'");
+                    _session.Logger.Debug("Echo server...");
                 }
 
                 using (var response = await _session.HttpClient.PostAsync(_requestUrl ?? Constants.ApiUrl, requestData))
@@ -1230,10 +1230,10 @@ namespace POGOLib.Official.Net
                             //re-send
                             await PlatformRequest(platformRequest);
                             break;
-                        case ResponseEnvelope.Types.StatusCode.SessionInvalidated:
+                        /*case ResponseEnvelope.Types.StatusCode.SessionInvalidated:
                             break;
                         case ResponseEnvelope.Types.StatusCode.InvalidPlatformRequest:
-                            break;
+                            break;*/
                         default:
                             _session.Logger.Debug($"Status code was: '{responseEnvelope.StatusCode}'.");
                             break;
