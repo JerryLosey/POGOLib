@@ -520,14 +520,11 @@ namespace POGOLib.Official.Net
 
                 using (var requestData = new ByteArrayContent(requestEnvelope.ToByteArray()))
                 {
-                    _session.Logger.Debug("Sending RPC Request: '" + string.Join(", ", requestEnvelope.Requests.Select(x => x.RequestType)) + "'");
-                    _session.Logger.Debug("=> Platform Request: '" + string.Join(", ", requestEnvelope.PlatformRequests.Select(x => x.Type)) + "'");
-
                     using (var response = await _session.HttpClient.PostAsync(_requestUrl ?? Constants.ApiUrl, requestData))
                     {
                         if (!response.IsSuccessStatusCode)
                         {
-                            _session.Logger.Debug(await response.Content.ReadAsStringAsync());
+                            _session.Logger.Warn(await response.Content.ReadAsStringAsync());
 
                             throw new Exception("Received a non-success HTTP status code from the RPC server, see the console for the response.");
                         }
@@ -649,6 +646,10 @@ namespace POGOLib.Official.Net
                         }
 
                         retries = 0;
+
+                        _session.Logger.Debug("Sending RPC Request: '" + string.Join(", ", requestEnvelope.Requests.Select(x => x.RequestType)) + "'");
+                        _session.Logger.Debug("=> Platform Request: '" + string.Join(", ", requestEnvelope.PlatformRequests.Select(x => x.Type)) + "'");
+
                         return HandleResponseEnvelope(requestEnvelope, responseEnvelope);
                     }
                 }
