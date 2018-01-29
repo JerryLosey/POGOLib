@@ -157,11 +157,12 @@ namespace POGOLib.Official.Util.Hash
             //Retries
             int retries = 3;
 
+            // Key selection
+            _keySelection.WaitOne();
+
             //Possibles errors
             string message = "Hash API server might be down.";
 
-            // Key selection
-            _keySelection.WaitOne();
 
             try
             {
@@ -217,7 +218,7 @@ namespace POGOLib.Official.Util.Hash
                             !int.TryParse(requestsRemainingValue.First(), out rateRequestsRemaining) ||
                             !int.TryParse(ratePeriodEndValue.FirstOrDefault(), out ratePeriodEndSeconds))
                         {
-                           message = "Failed parsing pokehash response header values.";
+                            message = "Failed parsing pokehash response header values.";
                             continue;
                         }
                     }
