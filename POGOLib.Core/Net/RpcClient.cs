@@ -407,7 +407,6 @@ namespace POGOLib.Official.Net
                         }.ToByteString()
                     });
                 }
-
             }
 
             return requestEnvelope;
@@ -625,15 +624,13 @@ namespace POGOLib.Official.Net
                                 // Apply new UnknownPtr8.
                                 if (Configuration.Hasher.AppVersion > 4500)
                                 {
-                                    var plat8Message = new UnknownPtr8Request()
-                                    {
-                                        Message = _mapKey
-                                    };
-
                                     requestEnvelope.PlatformRequests.Add(new RequestEnvelope.Types.PlatformRequest()
                                     {
                                         Type = PlatformRequestType.UnknownPtr8,
-                                        RequestMessage = plat8Message.ToByteString()
+                                        RequestMessage = new UnknownPtr8Request
+                                        {
+                                            Message = _mapKey
+                                        }.ToByteString()
                                     });
                                 }
                                 // Apply new PlatformRequests to envelope.
@@ -759,9 +756,6 @@ namespace POGOLib.Official.Net
                 // Handle the default responses.
                 HandleDefaultResponses(requestEnvelope, responseEnvelope.Returns);
 
-                // Handle the default responses.
-                HandleDefaultResponses(requestEnvelope, responseEnvelope.Returns);
-
                 // Handle responses which affect the inventory
                 HandleInventoryResponses(requestEnvelope.Requests[0], requestResponse);
 
@@ -793,6 +787,23 @@ namespace POGOLib.Official.Net
                         var releaseMessage = ReleasePokemonMessage.Parser.ParseFrom(request.RequestMessage);
                         pokemonId = releaseMessage.PokemonId;
                     }
+                    break;
+
+                case RequestType.GetPlayer:
+                    var getPlayerResponse = GetPlayerResponse.Parser.ParseFrom(requestResponse);
+                    _session.Player.Data = getPlayerResponse.PlayerData;
+                    _session.Player.Banned = getPlayerResponse.Banned;
+                    _session.Player.Warn = getPlayerResponse.Warn;
+
+                    if (getPlayerResponse.Warn)
+                    {
+                        _session.Logger.Warn("This account is flagged.");
+                    }
+                    if (getPlayerResponse.Banned)
+                    {
+                        _session.Logger.Error("This account is banned.");
+                    }
+
                     break;
             }
             if (pokemonId > 0)
