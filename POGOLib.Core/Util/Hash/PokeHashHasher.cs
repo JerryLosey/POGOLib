@@ -218,13 +218,13 @@ namespace POGOLib.Official.Util.Hash
                             !int.TryParse(ratePeriodEndValue.FirstOrDefault(), out ratePeriodEndSeconds))
                         {
                            message = "Failed parsing pokehash response header values.";
-                            break;
+                            continue;
                         }
                     }
                     else
                     {
                         message = "Failed parsing pokehash response headers.";
-                        break;
+                        continue;
                     }
 
                     // Use parsed headers
@@ -244,7 +244,7 @@ namespace POGOLib.Official.Util.Hash
                     if (response == null)
                     {
                         message = "Missed hash response Data";
-                        break;
+                        continue;
                     }
 
                     return response;
