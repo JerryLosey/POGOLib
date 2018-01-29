@@ -801,7 +801,7 @@ namespace POGOLib.Official.Net
                     }
                     if (getPlayerResponse.Banned)
                     {
-                        _session.Logger.Error("This account is banned.");
+                        throw new SessionStateException("This account is banned.");
                     }
                     break;
 
@@ -830,6 +830,7 @@ namespace POGOLib.Official.Net
                     _session.Player.Data = setContactSettingsResponse.PlayerData;
                     break;
             }
+
             if (pokemonId > 0)
             {
                 var pokemons = _session.Player.Inventory.InventoryItems.Where(

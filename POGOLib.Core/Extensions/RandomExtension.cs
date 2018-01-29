@@ -22,7 +22,6 @@ namespace POGOLib.Official.Extensions
 
             return result + random.Next(16).ToString("X");
         }
-
     }
 
     public class RandomIdGenerator
