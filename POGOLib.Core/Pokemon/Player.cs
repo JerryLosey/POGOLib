@@ -43,6 +43,15 @@ namespace POGOLib.Official.Pokemon
         }
 
         /// <summary>
+        ///     Gets the <see cref="Player" /> his current altitude.
+        /// </summary>
+        public double Altitude
+        {
+            get { return Coordinate.Altitude; }
+            set { Coordinate.Altitude = value; }
+        }
+
+        /// <summary>
         ///     Gets the <see cref="Inventory" /> of the <see cref="Player" />
         /// </summary>
         public Inventory Inventory { get; }
@@ -60,12 +69,12 @@ namespace POGOLib.Official.Pokemon
         /// <summary>
         ///     Gets the <see cref="Banned" /> of the <see cref="Player" />
         /// </summary>
-        public bool Banned { get; set; }
+        public bool Banned { get; internal set; }
 
         /// <summary>
         ///     Gets the <see cref="Warn" /> of the <see cref="Player" />
         /// </summary>
-        public bool Warn { get; set; }
+        public bool Warn { get; internal set; }
 
         public PlayerData Data { get; set; }
 
