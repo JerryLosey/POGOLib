@@ -803,7 +803,31 @@ namespace POGOLib.Official.Net
                     {
                         _session.Logger.Error("This account is banned.");
                     }
+                    break;
 
+                case RequestType.SetPlayerTeam:
+                    var setPlayerTeamResponse = SetPlayerTeamResponse.Parser.ParseFrom(requestResponse);
+                    _session.Player.Data = setPlayerTeamResponse.PlayerData;
+                    break;
+
+                case RequestType.ClaimCodename:
+                    var claimCodenameResponse = ClaimCodenameResponse.Parser.ParseFrom(requestResponse);
+                    _session.Player.Data = claimCodenameResponse.UpdatedPlayer;
+                    break;
+
+                case RequestType.MarkTutorialComplete:
+                    var markTutorialCompleteResponse = MarkTutorialCompleteResponse.Parser.ParseFrom(requestResponse);
+                    _session.Player.Data = markTutorialCompleteResponse.PlayerData;
+                    break;
+
+                case RequestType.SetAvatar:
+                    var setAvatarResponse = SetAvatarResponse.Parser.ParseFrom(requestResponse);
+                    _session.Player.Data = setAvatarResponse.PlayerData;
+                    break;
+
+                case RequestType.SetContactSettings:
+                    var setContactSettingsResponse = SetContactSettingsResponse.Parser.ParseFrom(requestResponse);
+                    _session.Player.Data = setContactSettingsResponse.PlayerData;
                     break;
             }
             if (pokemonId > 0)
