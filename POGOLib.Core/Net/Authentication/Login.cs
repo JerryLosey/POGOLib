@@ -25,11 +25,16 @@ namespace POGOLib.Official.Net.Authentication
         /// <returns></returns>
         public static Session GetSession(ILoginProvider loginProvider, AccessToken accessToken, double initialLatitude, double initialLongitude, DeviceWrapper deviceWrapper = null, GetPlayerMessage.Types.PlayerLocale playerLocale = null)
         {
-            if (accessToken.IsExpired)
-                throw new Exception("AccessToken is expired.");
-
             DeviceWrapper device = deviceWrapper ?? DeviceInfoUtil.GetRandomDevice();
             GetPlayerMessage.Types.PlayerLocale locale = playerLocale ?? new GetPlayerMessage.Types.PlayerLocale { Country = "US", Language = "en", Timezone = "America/New_York" };
+            string language = locale.Language + "-" + locale.Country;
+
+            if (accessToken.IsExpired)
+            {
+                accessToken = loginProvider.GetAccessToken(device.UserAgent, language).Result;
+                //throw new ArgumentException($"{nameof(accessToken)} is expired.");
+            }
+
             var session = new Session(loginProvider, accessToken, new GeoCoordinate(initialLatitude, initialLongitude), device, locale);
             session.Logger.Debug("Authenticated from cache.");
             return session;
@@ -67,13 +72,18 @@ namespace POGOLib.Official.Net.Authentication
         /// <returns></returns>
         public static Session GetSession(ILoginProvider loginProvider, AccessToken accessToken, GeoCoordinate coordinate, DeviceWrapper deviceWrapper = null, GetPlayerMessage.Types.PlayerLocale playerLocale = null)
         {
-            if (accessToken.IsExpired)
-            {
-                throw new ArgumentException($"{nameof(accessToken)} is expired.");
-            }
+           
 
             DeviceWrapper device = deviceWrapper ?? DeviceInfoUtil.GetRandomDevice();
             GetPlayerMessage.Types.PlayerLocale locale = playerLocale ?? new GetPlayerMessage.Types.PlayerLocale { Country = "US", Language = "en", Timezone = "America/New_York" };
+            string language = locale.Language + "-" + locale.Country;
+            
+            if (accessToken.IsExpired)
+            {
+                accessToken = loginProvider.GetAccessToken(device.UserAgent, language).Result;
+                //throw new ArgumentException($"{nameof(accessToken)} is expired.");
+            }
+
             var session = new Session(loginProvider, accessToken, coordinate, device, locale);
             session.Logger.Debug("Authenticated from cache.");
             if (loginProvider is PtcLoginProvider)
