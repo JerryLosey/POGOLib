@@ -159,17 +159,12 @@ namespace POGOLib.Official.Util.Hash
 
             // Key selection
             _keySelection.WaitOne();
+            HttpResponseMessage response = null;
+            PokeHashAuthKey authKey;
 
-            //Possibles errors
-            string message = "Hash API server might be down.";
-
-
-            try
+            do
             {
-                HttpResponseMessage response = null;
-                PokeHashAuthKey authKey;
-
-                do
+                try
                 {
                     var availableKeys = _authKeys.Where(x => x.Requests < x.MaxRequestCount).ToArray();
                     if (availableKeys.Length > 0)
@@ -203,9 +198,9 @@ namespace POGOLib.Official.Util.Hash
                     };
 
                     // Parse headers
-                    int maxRequestCount = 0;
-                    int rateRequestsRemaining = 0;
-                    int ratePeriodEndSeconds = 0;
+                    int maxRequestCount;
+                    int rateRequestsRemaining;
+                    int ratePeriodEndSeconds;
 
                     IEnumerable<string> maxRequestsValue;
                     IEnumerable<string> requestsRemainingValue;
@@ -218,14 +213,14 @@ namespace POGOLib.Official.Util.Hash
                             !int.TryParse(requestsRemainingValue.First(), out rateRequestsRemaining) ||
                             !int.TryParse(ratePeriodEndValue.FirstOrDefault(), out ratePeriodEndSeconds))
                         {
-                            message = "Failed parsing pokehash response header values.";
-                            continue;
+                            _keySelection.Release();
+                            throw new PokeHashException("Failed parsing pokehash response header values.");
                         }
                     }
                     else
                     {
-                        message = "Failed parsing pokehash response headers.";
-                        continue;
+                        _keySelection.Release();
+                        throw new PokeHashException("Failed parsing pokehash response headers.");
                     }
 
                     // Use parsed headers
@@ -244,21 +239,27 @@ namespace POGOLib.Official.Util.Hash
 
                     if (response == null)
                     {
-                        message = "Missed hash response Data";
-                        continue;
+                        _keySelection.Release();
+                        throw new PokeHashException("Missed hash response Data");
                     }
-
+                    _keySelection.Release();
                     return response;
+                }
+                catch
+                {
+                    await Task.Delay(1000);
+                    continue;
+                }
+                finally
+                {
+                    retries--;
+                    _keySelection.Release();
+                }
+            } while (retries > 0);
 
-                } while (retries > 0);
-            }
-            finally
-            {
-                retries--;
-                _keySelection.Release();
-            }
+            _keySelection.Release();
 
-            throw new PokeHashException(message);
+            throw new PokeHashException("Hash API server might be down.");
         }
 
         public byte[] GetEncryptedSignature(byte[] signatureBytes, uint timestampSinceStartMs)
