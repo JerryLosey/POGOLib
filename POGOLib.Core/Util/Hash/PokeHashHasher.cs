@@ -242,6 +242,7 @@ namespace POGOLib.Official.Util.Hash
                         _keySelection.Release();
                         throw new PokeHashException("Missed hash response Data");
                     }
+
                     _keySelection.Release();
                     return response;
                 }
@@ -253,12 +254,10 @@ namespace POGOLib.Official.Util.Hash
                 finally
                 {
                     retries--;
-                    _keySelection.Release();
                 }
             } while (retries > 0);
 
             _keySelection.Release();
-
             throw new PokeHashException("Hash API server might be down.");
         }
 
