@@ -311,7 +311,13 @@ namespace POGOLib.Official.Net
                     }
                     catch (Exception exception)
                     {
-                        Logger.Error($"Reauthenticate exception was catched: {exception}");
+                        if (exception.Message.Contains("15 minutes"))
+                            throw new PtcLoginException(exception.Message);
+
+                        if (exception.Message.Contains("You have to log into a browser"))
+                            throw new GoogleLoginException(exception.Message);
+
+                        throw new Exception($"Reauthenticate exception was catched: {exception}");
                     }
                     finally
                     {
