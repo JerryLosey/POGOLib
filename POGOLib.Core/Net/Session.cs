@@ -301,14 +301,6 @@ namespace POGOLib.Official.Net
                         else
                             Logger.Debug("Authenticated through Google.");
                     }
-                    catch (PtcLoginException ex)
-                    {
-                        throw new PtcLoginException(ex.Message);
-                    }
-                    catch (GoogleLoginException ex)
-                    {
-                        throw new GoogleLoginException(ex.Message);
-                    }
                     catch (Exception exception)
                     {
                         if (exception.Message.Contains("15 minutes"))

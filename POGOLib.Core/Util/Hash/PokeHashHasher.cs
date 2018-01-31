@@ -214,13 +214,11 @@ namespace POGOLib.Official.Util.Hash
                                 !int.TryParse(requestsRemainingValue.First(), out rateRequestsRemaining) ||
                                 !int.TryParse(ratePeriodEndValue.FirstOrDefault(), out ratePeriodEndSeconds))
                             {
-                                //_keySelection.Release();
                                 throw new PokeHashException("Failed parsing pokehash response header values.");
                             }
                         }
                         else
                         {
-                            //_keySelection.Release();
                             throw new PokeHashException("Failed parsing pokehash response headers.");
                         }
 
@@ -240,23 +238,17 @@ namespace POGOLib.Official.Util.Hash
 
                         if (response == null)
                         {
-                            //_keySelection.Release();
                             throw new PokeHashException("Missed hash response Data");
                         }
-                        //_keySelection.Release();
                         return response;
                     }
                     catch
                     {
-                        //await Task.Delay(1000);
-                        //continue;
+                        //Null
                     }
-                    //finally
-                    //{
+
                     await Task.Delay(1000);
                     retries--;
-                    //_keySelection.Release();
-                    //                }
                 } while (retries > 0);
             }
             finally

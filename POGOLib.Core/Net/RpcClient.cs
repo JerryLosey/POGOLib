@@ -520,8 +520,6 @@ namespace POGOLib.Official.Net
             });
         }
 
-        private int retries = 0;
-
         private async Task<ByteString> PerformRemoteProcedureCallAsync(RequestEnvelope requestEnvelope)
         {
             try
@@ -597,23 +595,34 @@ namespace POGOLib.Official.Net
                             case ResponseEnvelope.Types.StatusCode.InvalidAuthToken:
                                 _session.Logger.Debug("Received StatusCode 102, reauthenticating.");
 
-                                if (retries >= 10)
-                                    throw new SessionStateException("Received StatusCode 102, reauthenticating. Can not refresh token.");
+                                int retries = 10;
 
-                                ++retries;
+                                retry:
 
                                 _session.AccessToken.Expire();
                                 await _session.Reauthenticate();
 
-                                // Apply new token.
-                                var token = string.IsNullOrEmpty(_session.AccessToken?.Token) ? String.Empty : _session.AccessToken?.Token;
+                                if (retries == 0)
+                                {
+                                    throw new SessionStateException("Received StatusCode 102, reauthenticating. Can not refresh token.");
+                                }
 
+                                if (string.IsNullOrEmpty(_session.AccessToken.Token))
+                                {
+                                    //Retry 
+                                    _session.Logger.Debug($"Retry => #{retries}, wait 5 secs, token is empty on received StatusCode 102, reauthenticating....");
+                                    retries--;
+                                    await Task.Delay(5000);
+                                    goto retry;
+                                }                               
+
+                                 // Apply new token.
                                 requestEnvelope.AuthInfo = new RequestEnvelope.Types.AuthInfo
                                 {
                                     Provider = _session.AccessToken.ProviderID,
                                     Token = new RequestEnvelope.Types.AuthInfo.Types.JWT
                                     {
-                                        Contents = token,
+                                        Contents = _session.AccessToken.Token,
                                         Unknown2 = 59
                                     }
                                 };
@@ -674,9 +683,8 @@ namespace POGOLib.Official.Net
                                 var unknownPtr8Response = UnknownPtr8Response.Parser.ParseFrom(mapPlatform.Response);
                                 _mapKey = unknownPtr8Response.Message;
                             }
-
-                            retries = 0;
                         }
+
                         return HandleResponseEnvelope(requestEnvelope, responseEnvelope);
                     }
                 }
