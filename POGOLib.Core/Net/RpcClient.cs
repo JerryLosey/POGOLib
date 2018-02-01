@@ -371,7 +371,7 @@ namespace POGOLib.Official.Net
             {
                 if (_session.AccessToken.IsExpired)
                 {
-                    await _session.Reauthenticate();
+                    await _session.GetValidAccessToken(true);
                 }
 
                 requestEnvelope.AuthInfo = new RequestEnvelope.Types.AuthInfo
@@ -595,28 +595,9 @@ namespace POGOLib.Official.Net
                             case ResponseEnvelope.Types.StatusCode.InvalidAuthToken:
                                 _session.Logger.Debug("Received StatusCode 102, reauthenticating.");
 
-                                int retries = 10;
+                                await _session.GetValidAccessToken(true);
 
-                                retry:
-
-                                _session.AccessToken.Expire();
-                                await _session.Reauthenticate();
-
-                                if (retries == 0)
-                                {
-                                    throw new SessionStateException("Received StatusCode 102, reauthenticating. Can not refresh token.");
-                                }
-
-                                if (string.IsNullOrEmpty(_session.AccessToken.Token))
-                                {
-                                    //Retry 
-                                    _session.Logger.Debug($"Retry => #{retries}, wait 5 secs, token is empty on received StatusCode 102, reauthenticating....");
-                                    retries--;
-                                    await Task.Delay(5000);
-                                    goto retry;
-                                }                               
-
-                                 // Apply new token.
+                                // Apply new token.
                                 requestEnvelope.AuthInfo = new RequestEnvelope.Types.AuthInfo
                                 {
                                     Provider = _session.AccessToken.ProviderID,

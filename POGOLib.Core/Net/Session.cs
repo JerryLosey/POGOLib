@@ -280,52 +280,86 @@ namespace POGOLib.Official.Net
         }
 
         /// <summary>
+        /// Ensures the <see cref="Session" /> check if is valid access token.
+        /// </summary>
+        private bool IsValidAccessToken()
+        {
+            if (AccessToken == null || string.IsNullOrEmpty(AccessToken.Token) || AccessToken.IsExpired)
+                return false;
+
+            return true;
+        }
+
+        /// <summary>
+        /// Ensures the <see cref="Session" /> gets valid access token.
+        /// </summary>
+        internal async Task<AccessToken> GetValidAccessToken(bool forceRefresh = false)
+        {
+            try
+            {
+                ReauthenticateMutex.WaitOne();
+
+                if (IsValidAccessToken())
+                    return AccessToken;
+
+                if (forceRefresh)
+                {
+                    AccessToken.Expire();
+                }
+
+                await Reauthenticate();
+                return AccessToken;
+            }
+            finally
+            {
+                ReauthenticateMutex.Release();
+            }
+        }
+
+        /// <summary>
         /// Ensures the <see cref="Session" /> gets reauthenticated, no matter how long it takes.
         /// </summary>
-        internal async Task Reauthenticate()
+        private async Task Reauthenticate()
         {
-            ReauthenticateMutex.WaitOne();
-            if (AccessToken.IsExpired)
+            var tries = 0;
+            while (!IsValidAccessToken())
             {
-                AccessToken accessToken = null;
-                var tries = 0;
-
-                while (accessToken == null)
+                try
                 {
-                    try
-                    {
-                        string language = this.Player.PlayerLocale.Language + "-" + this.Player.PlayerLocale.Country;
-                        accessToken = await LoginProvider.GetAccessToken(this.Device.UserAgent, language);
-                        if (LoginProvider is PtcLoginProvider)
-                            Logger.Debug("Authenticated through PTC.");
-                        else
-                            Logger.Debug("Authenticated through Google.");
-                    }
-                    catch (Exception exception)
-                    {
-                        if (exception.Message.Contains("15 minutes"))
-                            throw new PtcLoginException(exception.Message);
+                    string language = this.Player.PlayerLocale.Language + "-" + this.Player.PlayerLocale.Country;
+                    AccessToken = await LoginProvider.GetAccessToken(this.Device.UserAgent, language);
+                    if (LoginProvider is PtcLoginProvider)
+                        Logger.Debug("Authenticated through PTC.");
+                    else
+                        Logger.Debug("Authenticated through Google.");
 
-                        if (exception.Message.Contains("You have to log into a browser"))
-                            throw new GoogleLoginException(exception.Message);
+                }
+                catch (Exception ex)
+                {
+                    if (ex.Message.Contains("15 minutes")) throw new PtcLoginException(ex.Message);
 
-                        throw new Exception($"Reauthenticate exception was catched: {exception}");
-                    }
-                    finally
+                    if (ex.Message.Contains("You have to log into a browser")) throw new GoogleLoginException(ex.Message);
+                    throw new Exception($"Reauthenticate exception was catched: {ex}");
+                }
+                finally
+                {
+                    if (!IsValidAccessToken())
                     {
-                        if (accessToken == null)
-                        {
-                            var sleepSeconds = Math.Min(60, ++tries * 5);
-                            Logger.Error($"Reauthentication failed, trying again in {sleepSeconds} seconds.");
-                            await Task.Delay(TimeSpan.FromMilliseconds(sleepSeconds * 1000));
-                        }
+                        var sleepSeconds = Math.Min(60, ++tries * 5);
+                        Logger.Error($"Reauthentication failed, trying again in {sleepSeconds} seconds.");
+                        await Task.Delay(TimeSpan.FromMilliseconds(sleepSeconds * 1000));
+                    }
+                    else
+                    {
+                        OnAccessTokenUpdated();
+                    }
+
+                    if (tries == 5)
+                    {
+                        throw new SessionStateException("Error refreshing access token.");
                     }
                 }
-          
-                AccessToken = accessToken;
-                OnAccessTokenUpdated();
             }
-            ReauthenticateMutex.Release();
         }
 
         #region Events
