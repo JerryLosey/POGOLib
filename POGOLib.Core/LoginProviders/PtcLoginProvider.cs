@@ -167,17 +167,10 @@ namespace POGOLib.Official.LoginProviders
                 return locationQuery.Substring(ticketStartPosition, locationQuery.Length - ticketStartPosition);
             }
 
-            try
-            {
-                var loginResponseData = JObject.Parse(loginResponseDataRaw);
-                var loginResponseErrors = (JArray)loginResponseData["errors"];
-                var parsedErrors = WebUtility.HtmlDecode(string.Join(",", loginResponseErrors));
-                throw new PtcLoginException("Pokemon Trainer Club gave error(s): '" + parsedErrors + "'");
-            }
-            catch
-            {
-                throw new PtcLoginException("Pokemon Trainer Club gave error.");
-            }
+            var loginResponseData = JObject.Parse(loginResponseDataRaw);
+            var loginResponseErrors = (JArray)loginResponseData["errors"];
+            var parsedErrors = WebUtility.HtmlDecode(string.Join(",", loginResponseErrors));
+            throw new PtcLoginException("Pokemon Trainer Club gave error(s): '" + parsedErrors + "'");
         }
 
         /// <summary>
@@ -213,17 +206,14 @@ namespace POGOLib.Official.LoginProviders
                 };
             }
 
-            try
-            {
-                var loginResponseData = JObject.Parse(loginResponseDataRaw);
-                var loginResponseErrors = (JArray)loginResponseData["errors"];
-                var parsedErrors = WebUtility.HtmlDecode(string.Join(",", loginResponseErrors));
-                throw new PtcLoginException("Pokemon Trainer Club gave error(s): '" + parsedErrors + "'");
-            }
-            catch
-            {
-                throw new PtcLoginException("Pokemon Trainer Club gave error.");
-            }
+            throw new PtcLoginException("Pokemon Trainer Club gave error(s): '" + loginResponse.StatusCode + "'");
+
+            /*
+            var loginResponseData = JObject.Parse(loginResponseDataRaw);
+            var loginResponseErrors = (JArray)loginResponseData["errors"];
+            var parsedErrors = WebUtility.HtmlDecode(string.Join(",", loginResponseErrors));
+            throw new PtcLoginException("Pokemon Trainer Club gave error(s): '" + parsedErrors + "'");
+            */
         }
 
         private async Task<string> GetProfile(HttpClient httpClient, string token, string language)

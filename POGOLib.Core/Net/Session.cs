@@ -334,18 +334,32 @@ namespace POGOLib.Official.Net
                         Logger.Debug("Authenticated through Google.");
 
                 }
-                catch (Exception ex)
+                catch (PtcLoginException ex)
                 {
                     if (ex.Message.Contains("15 minutes")) throw new PtcLoginException(ex.Message);
-
+                    throw new Exception($"Reauthenticate exception was catched: {ex}");
+                }
+                catch (GoogleLoginException ex)
+                {
                     if (ex.Message.Contains("You have to log into a browser")) throw new GoogleLoginException(ex.Message);
+                    throw new Exception($"Reauthenticate exception was catched: {ex}");
+                }
+                catch (Exception ex)
+                {
                     throw new Exception($"Reauthenticate exception was catched: {ex}");
                 }
                 finally
                 {
+                    if (tries == 5)
+                    {
+                        throw new SessionStateException("Error refreshing access token.");
+                    }
+
+                    ++tries;
+
                     if (!IsValidAccessToken())
                     {
-                        var sleepSeconds = Math.Min(60, ++tries * 5);
+                        var sleepSeconds = Math.Min(60, tries * 5);
                         Logger.Error($"Reauthentication failed, trying again in {sleepSeconds} seconds.");
                         await Task.Delay(TimeSpan.FromMilliseconds(sleepSeconds * 1000));
                     }
@@ -353,13 +367,10 @@ namespace POGOLib.Official.Net
                     {
                         OnAccessTokenUpdated();
                     }
-
-                    if (tries == 5)
-                    {
-                        throw new SessionStateException("Error refreshing access token.");
-                    }
                 }
+                return;
             }
+            throw new SessionStateException("Error refreshing access token.");
         }
 
         #region Events
