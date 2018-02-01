@@ -464,9 +464,8 @@ namespace POGOLib.Official.Net
 
         private Task<ByteString> SendRemoteProcedureCall(RequestEnvelope requestEnvelope)
         {
-            /* TODO: May be VerifyChallenge no works but this blocks refreshmapobjetcs
             if ( !requestEnvelope.Requests.Any() 
-                || (requestEnvelope.Requests.FirstOrDefault()?.RequestType == RequestType.VerifyChallenge)
+                && (requestEnvelope.Requests.FirstOrDefault()?.RequestType == RequestType.VerifyChallenge)
                )
             {
                 return Task.Run(async () =>
@@ -479,7 +478,7 @@ namespace POGOLib.Official.Net
                     return req;
                 });
             }
-            */
+            
 
             return Task.Run(async () =>
             {
