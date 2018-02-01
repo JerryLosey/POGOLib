@@ -299,13 +299,13 @@ namespace POGOLib.Official.Net
             {
                 ReauthenticateMutex.WaitOne();
 
-                if (IsValidAccessToken())
-                    return AccessToken;
-
                 if (forceRefresh)
                 {
                     AccessToken.Expire();
                 }
+
+                if (IsValidAccessToken())
+                    return AccessToken;
 
                 await Reauthenticate();
                 return AccessToken;
