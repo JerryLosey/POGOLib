@@ -310,10 +310,6 @@ namespace POGOLib.Official.Net
                 await Reauthenticate();
                 return AccessToken;
             }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
             finally
             {
                 ReauthenticateMutex.Release();
