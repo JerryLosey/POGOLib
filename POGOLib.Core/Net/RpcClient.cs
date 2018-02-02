@@ -627,8 +627,7 @@ namespace POGOLib.Official.Net
                                 // Apply new PlatformRequests to envelope.
                                 requestEnvelope.PlatformRequests.Add(await _rpcEncryption.GenerateSignatureAsync(requestEnvelope));
 
-                                // Re-send envelope.
-                                await Task.Delay(10000); //wait 10 secs on grave bug
+                                // Re-send envelope.                               
                                 return await PerformRemoteProcedureCallAsync(requestEnvelope);
                             case ResponseEnvelope.Types.StatusCode.BadRequest:
                                 // Your account may be banned! please try from the official client.

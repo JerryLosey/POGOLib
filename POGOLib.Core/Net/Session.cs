@@ -310,6 +310,10 @@ namespace POGOLib.Official.Net
                 await Reauthenticate();
                 return AccessToken;
             }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
             finally
             {
                 ReauthenticateMutex.Release();
@@ -322,6 +326,7 @@ namespace POGOLib.Official.Net
         private async Task Reauthenticate()
         {
             var tries = 0;
+
             while (!IsValidAccessToken())
             {
                 try
@@ -370,6 +375,7 @@ namespace POGOLib.Official.Net
                 }
                 return;
             }
+
             throw new SessionStateException("Error refreshing access token.");
         }
 
