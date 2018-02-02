@@ -464,9 +464,7 @@ namespace POGOLib.Official.Net
 
         private Task<ByteString> SendRemoteProcedureCall(RequestEnvelope requestEnvelope)
         {
-            if ( !requestEnvelope.Requests.Any() 
-                && (requestEnvelope.Requests.FirstOrDefault()?.RequestType == RequestType.VerifyChallenge)
-               )
+            if (requestEnvelope.Requests.FirstOrDefault()?.RequestType == RequestType.VerifyChallenge)
             {
                 return Task.Run(async () =>
                 {
@@ -477,8 +475,7 @@ namespace POGOLib.Official.Net
 
                     return req;
                 });
-            }
-            
+            }          
 
             return Task.Run(async () =>
             {
