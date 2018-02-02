@@ -576,6 +576,7 @@ namespace POGOLib.Official.Net
                                 }
                                 else
                                 {
+                                    await Task.Delay(10000); //wait 10 secs on grave bug
                                     throw new Exception($"Received an incorrect API url: '{responseEnvelope.ApiUrl}', status code was: '{responseEnvelope.StatusCode}'.");
                                 }
                                 break;
@@ -585,9 +586,9 @@ namespace POGOLib.Official.Net
                                 if (Regex.IsMatch(responseEnvelope.ApiUrl, "pgorelease\\.nianticlabs\\.com\\/plfe\\/\\d+"))
                                 {
                                     _requestUrl = $"https://{responseEnvelope.ApiUrl}/rpc";
-
                                     return await PerformRemoteProcedureCallAsync(requestEnvelope);
                                 }
+                                await Task.Delay(10000); //wait 10 secs on grave bug
                                 throw new Exception($"Received an incorrect API url: '{responseEnvelope.ApiUrl}', status code was: '{responseEnvelope.StatusCode}'.");
 
                             // The login token is invalid.
@@ -627,19 +628,26 @@ namespace POGOLib.Official.Net
                                 requestEnvelope.PlatformRequests.Add(await _rpcEncryption.GenerateSignatureAsync(requestEnvelope));
 
                                 // Re-send envelope.
+                                await Task.Delay(10000); //wait 10 secs on grave bug
                                 return await PerformRemoteProcedureCallAsync(requestEnvelope);
                             case ResponseEnvelope.Types.StatusCode.BadRequest:
                                 // Your account may be banned! please try from the official client.
+                                await Task.Delay(10000); //wait 10 secs on grave bug
                                 throw new APIBadRequestException("BAD REQUEST");
                             case ResponseEnvelope.Types.StatusCode.SessionInvalidated:
+                                await Task.Delay(10000); //wait 10 secs on grave bug
                                 throw new SessionInvalidatedException("SESSION INVALIDATED EXCEPTION");
                             case ResponseEnvelope.Types.StatusCode.Unknown:
+                                await Task.Delay(10000); //wait 10 secs on grave bug
                                 throw new SessionUnknowException("UNKNOWN");
                             case ResponseEnvelope.Types.StatusCode.InvalidPlatformRequest:
+                                await Task.Delay(10000); //wait 10 secs on grave bug
                                 throw new InvalidPlatformException("INVALID PLATFORM EXCEPTION");
                             case ResponseEnvelope.Types.StatusCode.InvalidRequest:
+                                await Task.Delay(10000); //wait 10 secs on grave bug
                                 throw new InvalidPlatformException("INVALID REQUEST");
                             default:
+                                await Task.Delay(10000); //wait 10 secs on grave bug
                                 throw new Exception($"Unknown status code: {responseEnvelope.StatusCode}");
                         }
 
@@ -652,18 +660,18 @@ namespace POGOLib.Official.Net
                                 LastGeoCoordinateMapObjectsRequest = _session.Player.Coordinate;
                             }
 
-                            if (responseEnvelope.AuthTicket != null)
-                            {
-                                _session.AccessToken.AuthTicket = responseEnvelope.AuthTicket;
-                                _session.Logger.Debug("Received a new AuthTicket from Pokemon!");
-                            }
-
                             var mapPlatform = responseEnvelope.PlatformReturns.FirstOrDefault(x => x.Type == PlatformRequestType.UnknownPtr8);
                             if (mapPlatform != null)
                             {
                                 var unknownPtr8Response = UnknownPtr8Response.Parser.ParseFrom(mapPlatform.Response);
                                 _mapKey = unknownPtr8Response.Message;
                             }
+                        }
+
+                        if (responseEnvelope.AuthTicket != null)
+                        {
+                            _session.AccessToken.AuthTicket = responseEnvelope.AuthTicket;
+                            _session.Logger.Debug("Received a new AuthTicket from Pokemon!");
                         }
 
                         return HandleResponseEnvelope(requestEnvelope, responseEnvelope);
