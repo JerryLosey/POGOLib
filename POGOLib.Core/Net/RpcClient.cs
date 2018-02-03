@@ -464,21 +464,18 @@ namespace POGOLib.Official.Net
 
         private Task<ByteString> SendRemoteProcedureCall(RequestEnvelope requestEnvelope)
         {
-            if (requestEnvelope.Requests.FirstOrDefault()?.RequestType == RequestType.VerifyChallenge)
-            {
-                return Task.Run(async () =>
-                {
-                    _rpcResponses.GetOrAdd(requestEnvelope, await PerformRemoteProcedureCallAsync(requestEnvelope));
-
-                    ByteString req;
-                    _rpcResponses.TryRemove(requestEnvelope, out req);
-
-                    return req;
-                });
-            }          
-
             return Task.Run(async () =>
             {
+                //Session is paused this is not in semafore!!
+                if (requestEnvelope.Requests.FirstOrDefault()?.RequestType == RequestType.VerifyChallenge)
+                {
+                     _rpcResponses.GetOrAdd(requestEnvelope, await PerformRemoteProcedureCallAsync(requestEnvelope));
+
+                     ByteString req;
+                     _rpcResponses.TryRemove(requestEnvelope, out req);
+                     return req;
+                }
+
                 _rpcQueue.Enqueue(requestEnvelope);
 
                 try
