@@ -466,8 +466,8 @@ namespace POGOLib.Official.Net
         public event EventHandler<CheckAwardedBadgesResponse> CheckAwardedBadgesReceived;
 
         /// <summary>
-        /// If you have successfully solved the captcha using VerifyChallegenge, 
-        /// you can resume POGOLib by using <see cref="ResumeAsync"/>.
+        /// If you have successfully solved the captcha using VerifyChallange, 
+        /// may be you can resume POGOLib by using <see cref="ResumeAsync"/>.
         /// </summary>
         public event EventHandler<CaptchaEventArgs> CaptchaReceived;
         #endregion
