@@ -238,7 +238,7 @@ namespace POGOLib.Official.Net
         ///     Gets the next request id for the <see cref="RequestEnvelope" />.
         /// </summary>
         /// <returns></returns>
-        internal ulong GetNextRequestId()
+        private ulong GetNextRequestId()
         {
             //Change to random requestId https://github.com/pogodevorg/pgoapi/pull/217
 
@@ -250,7 +250,7 @@ namespace POGOLib.Official.Net
         ///     <see cref="Request" />.
         /// </summary>
         /// <returns></returns>
-        internal IEnumerable<Request> GetDefaultRequests(bool nobuddy, bool noinbox)
+        private IEnumerable<Request> GetDefaultRequests(bool nobuddy, bool noinbox)
         {
             var request = new List<Request>
             {
@@ -645,20 +645,17 @@ namespace POGOLib.Official.Net
                         }
 
                         LastRpcRequest = DateTime.UtcNow;
-                        if (requestEnvelope.Requests.Count > 0)
+                        if (requestEnvelope.Requests[0].RequestType == RequestType.GetMapObjects)
                         {
-                            if (requestEnvelope.Requests[0].RequestType == RequestType.GetMapObjects)
-                            {
-                                LastRpcMapObjectsRequest = LastRpcRequest;
-                                LastGeoCoordinateMapObjectsRequest = _session.Player.Coordinate;
-                            }
+                            LastRpcMapObjectsRequest = LastRpcRequest;
+                            LastGeoCoordinateMapObjectsRequest = _session.Player.Coordinate;
+                        }
 
-                            var mapPlatform = responseEnvelope.PlatformReturns.FirstOrDefault(x => x.Type == PlatformRequestType.UnknownPtr8);
-                            if (mapPlatform != null)
-                            {
-                                var unknownPtr8Response = UnknownPtr8Response.Parser.ParseFrom(mapPlatform.Response);
-                                _mapKey = unknownPtr8Response.Message;
-                            }
+                        var mapPlatform = responseEnvelope.PlatformReturns.FirstOrDefault(x => x.Type == PlatformRequestType.UnknownPtr8);
+                        if (mapPlatform != null)
+                        {
+                            var unknownPtr8Response = UnknownPtr8Response.Parser.ParseFrom(mapPlatform.Response);
+                            _mapKey = unknownPtr8Response.Message;
                         }
 
                         if (responseEnvelope.AuthTicket != null)
@@ -738,20 +735,16 @@ namespace POGOLib.Official.Net
             //    throw new Exception("There were 0 responses.");
             //}
 
-            if (requestEnvelope.Requests.Count > 0)
-            {
-                // Take requested response and remove from returns.
-                var requestResponse = responseEnvelope.Returns[0];
+            // Take requested response and remove from returns.
+            var requestResponse = responseEnvelope.Returns[0];
 
-                // Handle the default responses.
-                HandleDefaultResponses(requestEnvelope, responseEnvelope.Returns);
+            // Handle the default responses.
+            HandleDefaultResponses(requestEnvelope, responseEnvelope.Returns);
 
-                // Handle responses which affect the inventory
-                HandleInventoryResponses(requestEnvelope.Requests[0], requestResponse);
+            // Handle responses which affect the inventory
+            HandleInventoryResponses(requestEnvelope.Requests[0], requestResponse);
 
-                return requestResponse;
-            }
-            return null;
+            return requestResponse;
         }
 
         private void HandleInventoryResponses(Request request, ByteString requestResponse)
