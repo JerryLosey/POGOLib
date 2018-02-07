@@ -66,47 +66,46 @@ namespace POGOLib.Official.Pokemon
                 {
                     canRefresh = true;
                 }
-                if (canRefresh)
-                {
-                    try
-                    {
-                        await Dispatch();
-                    }
-                    catch (SessionInvalidatedException ex)
-                    {
-                        throw new SessionStateException($"Map refresh failed: {ex}");
-                    }
-                    catch (PokeHashException ex)
-                    {
-                        throw new PokeHashException($"Hash problem: {ex}");
-                    }
-                    catch (HashVersionMismatchException ex)
-                    {
-                        throw new HashVersionMismatchException(ex.Message);
-                    }
-                    catch (Exception e)
-                    {
-                        throw new Exception(e.Message);
-                    }
-                }
-
-                // after first dispatch, signal as complete
-                firstRefreshCompleted?.TrySetResult(true);
-                firstRefreshCompleted = null;
 
                 try
                 {
+                    if (canRefresh)
+                    {
+                        await Dispatch();
+                    }
+
                     await Task.Delay(TimeSpan.FromMilliseconds(1000), _heartbeatCancellation.Token);
+                }
+                catch (SessionInvalidatedException ex)
+                {
+                    throw new SessionStateException($"Map refresh failed: {ex}");
+                }
+                catch (PokeHashException ex)
+                {
+                    throw new PokeHashException($"Hash problem: {ex}");
+                }
+                catch (HashVersionMismatchException ex)
+                {
+                    throw new HashVersionMismatchException(ex.Message);
                 }
                 // cancelled
                 catch (OperationCanceledException)
                 {
                     break;
                 }
+                catch (Exception e)
+                {
+                    throw new Exception(e.Message);
+                }
+                finally
+                {
+                    // after dispatch, signal as complete
+                    firstRefreshCompleted?.TrySetResult(true);
+                    firstRefreshCompleted = null;
+                }
             }
 
             firstRefreshCompleted?.TrySetResult(false);
-
             _session.Logger.Debug("Heartbeat got cancelled");
         }
 
