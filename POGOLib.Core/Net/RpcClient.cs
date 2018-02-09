@@ -131,6 +131,7 @@ namespace POGOLib.Official.Net
                     RequestMessage = new GetPlayerMessage
                     {
                         PlayerLocale = _session.Player.PlayerLocale,
+                        //New in protos ???
                         PreventCreation = true
                     }.ToByteString()
                 });
@@ -151,6 +152,7 @@ namespace POGOLib.Official.Net
             _session.Player.Banned = playerResponse.Banned;
             _session.Player.Warn = playerResponse.Warn;
             
+            //New in Protos ???
             if (playerResponse.WasCreated)
             {
                 _session.Logger.Notice("This account is created.");
@@ -544,11 +546,6 @@ namespace POGOLib.Official.Net
                         break;
                 }
 
-                if (!_session.DispatcherisRunning && (_session.State == SessionState.Started || _session.State == SessionState.Resumed))
-                {
-                    await _session.Heartbeat.StartDispatcherAsync();
-                }
-
                 using (var requestData = new ByteArrayContent(requestEnvelope.ToByteArray()))
                 {
                     using (var response = await _session.HttpClient.PostAsync(_requestUrl ?? Constants.ApiUrl, requestData))
@@ -599,6 +596,12 @@ namespace POGOLib.Official.Net
                             // The login token is invalid.
                             // TODO: Make cleaner to reduce duplicate code with the GetRequestEnvelopeAsync method.
                             case ResponseEnvelope.Types.StatusCode.InvalidAuthToken:
+                                //TODO: Make session invalidate and reconect...
+                                await Task.Delay(10000); //wait 10 secs on grave bug
+                                throw new SessionInvalidatedException("Received StatusCode 102, reauthenticating.");
+
+                                //TODO: All next closes Dispacher
+                                /*
                                 _session.Logger.Debug("Received StatusCode 102, reauthenticating.");
 
                                 await _session.GetValidAccessToken(true);
@@ -634,6 +637,7 @@ namespace POGOLib.Official.Net
 
                                 // Re-send envelope.                               
                                 return await PerformRemoteProcedureCallAsync(requestEnvelope);
+                                //*/
                             case ResponseEnvelope.Types.StatusCode.BadRequest:
                                 // Your account may be banned! please try from the official client.
                                 await Task.Delay(10000); //wait 10 secs on grave bug

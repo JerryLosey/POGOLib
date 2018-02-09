@@ -73,23 +73,17 @@ namespace POGOLib.Official.Pokemon
                     {
                         await Dispatch();
                     }
-
-                    await Task.Delay(TimeSpan.FromMilliseconds(1000), _heartbeatCancellation.Token);
-                    _session.DispatcherisRunning = true;
                 }
                 catch (SessionInvalidatedException ex)
                 {
-                    _session.DispatcherisRunning = false;
                     throw new SessionStateException($"Map refresh failed: {ex}");
                 }
                 catch (PokeHashException ex)
                 {
-                    _session.DispatcherisRunning = false;
                     throw new PokeHashException($"Hash problem: {ex}");
                 }
                 catch (HashVersionMismatchException ex)
                 {
-                    _session.DispatcherisRunning = false;
                     throw new HashVersionMismatchException(ex.Message);
                 }
                 // cancelled
@@ -99,7 +93,6 @@ namespace POGOLib.Official.Pokemon
                 }
                 catch (Exception e)
                 {
-                    _session.DispatcherisRunning = false;
                     throw new Exception(e.Message);
                 }
                 finally
@@ -107,6 +100,7 @@ namespace POGOLib.Official.Pokemon
                     // after dispatch, signal as complete
                     firstRefreshCompleted?.TrySetResult(true);
                     firstRefreshCompleted = null;
+                    await Task.Delay(TimeSpan.FromMilliseconds(1000), _heartbeatCancellation.Token);
                 }
             }
 
