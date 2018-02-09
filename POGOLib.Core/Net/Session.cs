@@ -25,6 +25,8 @@ namespace POGOLib.Official.Net
     /// </summary>
     public class Session : IDisposable
     {
+        internal bool DispatcherisRunning;
+
         private SessionState _state;
 
         private bool _incenseUsed;
@@ -36,7 +38,7 @@ namespace POGOLib.Official.Net
         /// <summary>
         /// This is the <see cref="HeartbeatDispatcher" /> which is responsible for retrieving events and updating gps location.
         /// </summary>
-        private readonly HeartbeatDispatcher _heartbeat;
+        internal readonly HeartbeatDispatcher Heartbeat;
 
         /// <summary>
         /// This is the <see cref="RpcClient" /> which is responsible for all communication between us and PokémonGo.
@@ -84,7 +86,7 @@ namespace POGOLib.Official.Net
             Map = new Map(this);
             Templates = new Templates(this);
             RpcClient = new RpcClient(this);
-            _heartbeat = new HeartbeatDispatcher(this);
+            Heartbeat = new HeartbeatDispatcher(this);
         }
 
         /// <summary>
@@ -213,7 +215,7 @@ namespace POGOLib.Official.Net
                 return false;
             }
 
-            await _heartbeat.StartDispatcherAsync();
+            await Heartbeat.StartDispatcherAsync();
 
             return true;
         }
@@ -228,7 +230,7 @@ namespace POGOLib.Official.Net
 
             State = SessionState.Paused;
 
-            _heartbeat.StopDispatcher();
+            Heartbeat.StopDispatcher();
         }
 
         public async Task ResumeAsync()
@@ -240,7 +242,7 @@ namespace POGOLib.Official.Net
 
             State = SessionState.Resumed;
 
-            await _heartbeat.StartDispatcherAsync();
+            await Heartbeat.StartDispatcherAsync();
         }
 
         public void Shutdown()
@@ -253,7 +255,7 @@ namespace POGOLib.Official.Net
             if (State != SessionState.TemporalBanned)
                 State = SessionState.Stopped;
 
-            _heartbeat.StopDispatcher();
+            Heartbeat.StopDispatcher();
         }
 
         /// <summary>

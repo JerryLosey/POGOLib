@@ -130,7 +130,8 @@ namespace POGOLib.Official.Net
                     RequestType = RequestType.GetPlayer,
                     RequestMessage = new GetPlayerMessage
                     {
-                        PlayerLocale = _session.Player.PlayerLocale
+                        PlayerLocale = _session.Player.PlayerLocale,
+                        PreventCreation = true
                     }.ToByteString()
                 });
 
@@ -149,6 +150,11 @@ namespace POGOLib.Official.Net
             _session.Player.Data = playerResponse.PlayerData;
             _session.Player.Banned = playerResponse.Banned;
             _session.Player.Warn = playerResponse.Warn;
+            
+            if (playerResponse.WasCreated)
+            {
+                _session.Logger.Notice("This account is created.");
+            }
 
             if (playerResponse.Warn)
             {
@@ -536,6 +542,11 @@ namespace POGOLib.Official.Net
                             return null;
                         }
                         break;
+                }
+
+                if (!_session.DispatcherisRunning && (_session.State == SessionState.Started || _session.State == SessionState.Resumed))
+                {
+                    await _session.Heartbeat.StartDispatcherAsync();
                 }
 
                 using (var requestData = new ByteArrayContent(requestEnvelope.ToByteArray()))
