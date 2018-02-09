@@ -597,11 +597,11 @@ namespace POGOLib.Official.Net
                             // TODO: Make cleaner to reduce duplicate code with the GetRequestEnvelopeAsync method.
                             case ResponseEnvelope.Types.StatusCode.InvalidAuthToken:
                                 //TODO: Make session invalidate and reconect...
-                                await Task.Delay(10000); //wait 10 secs on grave bug
-                                throw new SessionInvalidatedException("Received StatusCode 102, reauthenticating.");
+                                //await Task.Delay(10000); //wait 10 secs on grave bug
+                                //throw new SessionInvalidatedException("Received StatusCode 102, reauthenticating.");
 
                                 //TODO: All next closes Dispacher
-                                /*
+                                //*/
                                 _session.Logger.Debug("Received StatusCode 102, reauthenticating.");
 
                                 await _session.GetValidAccessToken(true);
