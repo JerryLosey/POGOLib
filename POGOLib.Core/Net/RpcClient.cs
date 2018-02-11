@@ -20,6 +20,7 @@ using POGOProtos.Networking.Platform.Responses;
 using POGOLib.Official.Extensions;
 using POGOProtos.Map.Pokemon;
 using POGOLib.Official.Exceptions;
+using Google.Protobuf.Collections;
 
 namespace POGOLib.Official.Net
 {
@@ -67,7 +68,7 @@ namespace POGOLib.Official.Net
 
         private readonly Semaphore _rpcQueueMutex = new Semaphore(1, 1);
 
-        private List<string> NewsIds = new List<string>();
+        private RepeatedField<string> NewsIds = new RepeatedField<string>();
 
         internal RpcClient(Session session)
         {
@@ -1238,7 +1239,7 @@ namespace POGOLib.Official.Net
                 {
                     //
                 }.ToByteString()
-            }, true, false, false);
+            }, false, false, false);
 
             if (response != null)
             {
@@ -1272,27 +1273,20 @@ namespace POGOLib.Official.Net
                 {
                     NewsIds = { NewsIds }
                 }.ToByteString()
-            }, true, false, false);
+            }, false, false, false);
 
             if (response != null)
             {
-                var fetchAllNewsResponse = FetchAllNewsResponse.Parser.ParseFrom(response);
+                var markReadNewsArticleResponse = MarkReadNewsArticleResponse.Parser.ParseFrom(response);
 
-                switch (fetchAllNewsResponse.Result)
+                switch (markReadNewsArticleResponse.Result)
                 {
-                    case FetchAllNewsResponse.Types.Result.NoNewsFound:
+                    case MarkReadNewsArticleResponse.Types.Result.NoNewsFound:
                         break;
-                    case FetchAllNewsResponse.Types.Result.Success:
-                        if (fetchAllNewsResponse.CurrentNews.NewsArticles.Count > 0)
-                        {
-                            foreach (var art in fetchAllNewsResponse.CurrentNews.NewsArticles)
-                            {
-                                art.ArticleRead = true;
-                                art.Enabled = false;
-                            }
-                        }
+                    case MarkReadNewsArticleResponse.Types.Result.Success:
+                        _session.Logger.Info("MarkReadNewsArticle success.");
                         break;
-                    case FetchAllNewsResponse.Types.Result.Unset:
+                    case MarkReadNewsArticleResponse.Types.Result.Unset:
                         break;
                 };
             }
