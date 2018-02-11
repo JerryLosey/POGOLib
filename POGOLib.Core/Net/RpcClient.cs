@@ -178,6 +178,8 @@ namespace POGOLib.Official.Net
 
             //GetStoreItems
             await SendRemoteProcedureCallAsync(PlatformRequestType.GetStoreItems);
+            //FetchAllNews
+            await FetchAllNews();
 
             return true;
         }
@@ -1218,6 +1220,33 @@ namespace POGOLib.Official.Net
 
                 if (_session.ManageRessources)
                     _session.OnUrlsReceived(dowloadUrls);
+            }
+        }
+
+        private async Task FetchAllNews()
+        {
+            var response = await SendRemoteProcedureCallAsync(new Request
+            {
+                RequestType = RequestType.FetchAllNews,
+                RequestMessage = new FetchAllNewsMessage
+                {
+                    //
+                }.ToByteString()
+            }, true, true, true);
+
+            if (response != null)
+            {
+                var fetchAllNewsResponse = FetchAllNewsResponse.Parser.ParseFrom(response);
+                
+                switch (fetchAllNewsResponse.Result)
+                {
+                    case FetchAllNewsResponse.Types.Result.NoNewsFound:
+                        break;
+                    case FetchAllNewsResponse.Types.Result.Success:
+                        break;
+                    case FetchAllNewsResponse.Types.Result.Unset:
+                        break;
+                };
             }
         }
     }
