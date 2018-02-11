@@ -131,7 +131,7 @@ namespace POGOLib.Official.Pokemon
 
         private async Task Dispatch()
         {
-            await _session.RpcClient.RefreshMapObjectsAsync();
+            await Task.Run(async () => await _session.RpcClient.RefreshMapObjectsAsync());
         }
     }
 }
