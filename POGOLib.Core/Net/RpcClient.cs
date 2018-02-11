@@ -132,7 +132,7 @@ namespace POGOLib.Official.Net
                     {
                         PlayerLocale = _session.Player.PlayerLocale,
                         //New in protos ???
-                        PreventCreation = true
+                        //PreventCreation = true
                     }.ToByteString()
                 });
 
@@ -153,10 +153,10 @@ namespace POGOLib.Official.Net
             _session.Player.Warn = playerResponse.Warn;
             
             //New in Protos ???
-            if (playerResponse.WasCreated)
-            {
-                _session.Logger.Notice("This account is created.");
-            }
+            //if (playerResponse.WasCreated)
+            //{
+            //    _session.Logger.Notice("This account is created.");
+            //}
 
             if (playerResponse.Warn)
             {
