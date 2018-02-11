@@ -71,7 +71,7 @@ namespace POGOLib.Official.Pokemon
                 {
                     if (canRefresh)
                     {
-                        await Dispatch();
+                        await Task.Run(async () => await Dispatch());
                     }
                 }
                 catch (SessionInvalidatedException ex)
@@ -131,7 +131,7 @@ namespace POGOLib.Official.Pokemon
 
         private async Task Dispatch()
         {
-            await Task.Run(async () => await _session.RpcClient.RefreshMapObjectsAsync());
+           await _session.RpcClient.RefreshMapObjectsAsync();
         }
     }
 }

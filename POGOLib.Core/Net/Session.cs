@@ -307,7 +307,11 @@ namespace POGOLib.Official.Net
                 if (IsValidAccessToken())
                     return AccessToken;
 
-                await Reauthenticate();
+                await Task.Run(async () =>
+                {
+                    return await Reauthenticate();
+                });
+
                 return AccessToken;
             }
             finally
@@ -319,61 +323,55 @@ namespace POGOLib.Official.Net
         /// <summary>
         /// Ensures the <see cref="Session" /> gets reauthenticated, no matter how long it takes.
         /// </summary>
-        private async Task Reauthenticate()
+        private async Task<AccessToken> Reauthenticate()
         {
             var tries = 0;
 
-            await Task.Run(async () =>
+            while (!IsValidAccessToken())
             {
-                while (!IsValidAccessToken())
+                try
                 {
-                    try
-                    {
-                        string language = this.Player.PlayerLocale.Language + "-" + this.Player.PlayerLocale.Country;
-                        AccessToken = await LoginProvider.GetAccessToken(this.Device.UserAgent, language);
-                        if (LoginProvider is PtcLoginProvider)
-                            Logger.Debug("Authenticated through PTC.");
-                        else
-                            Logger.Debug("Authenticated through Google.");
-                    }
-                    catch (PtcLoginException ex)
-                    {
-                        if (ex.Message.Contains("15 minutes")) throw new PtcLoginException(ex.Message);
-                        throw new Exception($"Reauthenticate exception was catched: {ex}");
-                    }
-                    catch (GoogleLoginException ex)
-                    {
-                        if (ex.Message.Contains("You have to log into a browser")) throw new GoogleLoginException(ex.Message);
-                        throw new Exception($"Reauthenticate exception was catched: {ex}");
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new Exception($"Reauthenticate exception was catched: {ex}");
-                    }
-                    finally
-                    {
-                        if (tries == 5)
-                        {
-                            throw new SessionStateException("Error refreshing access token.");
-                        }
+                    string language = this.Player.PlayerLocale.Language + "-" + this.Player.PlayerLocale.Country;
+                    AccessToken accessToken = await LoginProvider.GetAccessToken(this.Device.UserAgent, language);
+                    if (LoginProvider is PtcLoginProvider)
+                        Logger.Debug("Authenticated through PTC.");
+                    else
+                        Logger.Debug("Authenticated through Google.");
 
-                        ++tries;
+                    OnAccessTokenUpdated();
+                    return accessToken;
+                }
+                catch (PtcLoginException ex)
+                {
+                    if (ex.Message.Contains("15 minutes")) throw new PtcLoginException(ex.Message);
+                    throw new Exception($"Reauthenticate exception was catched: {ex}");
+                }
+                catch (GoogleLoginException ex)
+                {
+                    if (ex.Message.Contains("You have to log into a browser")) throw new GoogleLoginException(ex.Message);
+                    throw new Exception($"Reauthenticate exception was catched: {ex}");
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception($"Reauthenticate exception was catched: {ex}");
+                }
+                finally
+                {
+                    if (tries == 5)
+                    {
+                        throw new SessionStateException("Error refreshing access token.");
+                    }
 
-                        if (!IsValidAccessToken())
-                        {
-                            var sleepSeconds = Math.Min(60, tries * 5);
-                            Logger.Error($"Reauthentication failed, trying again in {sleepSeconds} seconds.");
-                            await Task.Delay(TimeSpan.FromMilliseconds(sleepSeconds * 1000));
-                        }
-                        else
-                        {
-                            OnAccessTokenUpdated();
-                        }
+                    ++tries;
+
+                    if (!IsValidAccessToken())
+                    {
+                        var sleepSeconds = Math.Min(60, tries * 5);
+                        Logger.Error($"Reauthentication failed, trying again in {sleepSeconds} seconds.");
+                        await Task.Delay(TimeSpan.FromMilliseconds(sleepSeconds * 1000));
                     }
                 }
-                return;
-            });
-
+            }
             throw new SessionStateException("Error refreshing access token.");
         }
 
