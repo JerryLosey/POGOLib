@@ -67,6 +67,8 @@ namespace POGOLib.Official.Net
 
         private readonly Semaphore _rpcQueueMutex = new Semaphore(1, 1);
 
+        private List<string> NewsIds = new List<string>();
+
         internal RpcClient(Session session)
         {
             _session = session;
@@ -178,8 +180,12 @@ namespace POGOLib.Official.Net
 
             //GetStoreItems
             await SendRemoteProcedureCallAsync(PlatformRequestType.GetStoreItems);
+
             //FetchAllNews
             await FetchAllNews();
+
+            //MarkReadNewsArticle
+            await MarkReadNewsArticle();
 
             return true;
         }
@@ -1232,7 +1238,7 @@ namespace POGOLib.Official.Net
                 {
                     //
                 }.ToByteString()
-            }, true, true, true);
+            }, true, false, false);
 
             if (response != null)
             {
@@ -1243,6 +1249,48 @@ namespace POGOLib.Official.Net
                     case FetchAllNewsResponse.Types.Result.NoNewsFound:
                         break;
                     case FetchAllNewsResponse.Types.Result.Success:
+                        if (fetchAllNewsResponse.CurrentNews.NewsArticles.Count > 0)
+                        {
+                            foreach (var art in fetchAllNewsResponse.CurrentNews.NewsArticles)
+                            {
+                                NewsIds.Add(art.Id);
+                            }
+                        }
+                        break;
+                    case FetchAllNewsResponse.Types.Result.Unset:
+                        break;
+                };
+            }
+        }
+
+        private async Task MarkReadNewsArticle()
+        {
+            var response = await SendRemoteProcedureCallAsync(new Request
+            {
+                RequestType = RequestType.MarkReadNewsArticle,
+                RequestMessage = new MarkReadNewsArticleMessage
+                {
+                    NewsIds = { NewsIds }
+                }.ToByteString()
+            }, true, false, false);
+
+            if (response != null)
+            {
+                var fetchAllNewsResponse = FetchAllNewsResponse.Parser.ParseFrom(response);
+
+                switch (fetchAllNewsResponse.Result)
+                {
+                    case FetchAllNewsResponse.Types.Result.NoNewsFound:
+                        break;
+                    case FetchAllNewsResponse.Types.Result.Success:
+                        if (fetchAllNewsResponse.CurrentNews.NewsArticles.Count > 0)
+                        {
+                            foreach (var art in fetchAllNewsResponse.CurrentNews.NewsArticles)
+                            {
+                                art.ArticleRead = true;
+                                art.Enabled = false;
+                            }
+                        }
                         break;
                     case FetchAllNewsResponse.Types.Result.Unset:
                         break;
