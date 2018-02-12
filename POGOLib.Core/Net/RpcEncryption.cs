@@ -198,7 +198,7 @@ namespace POGOLib.Official.Net
             HashData hashData = null;
             try
             {
-                hashData = await Task.Run(async () => await Configuration.Hasher.GetHashDataAsync(requestEnvelope, signature, locationBytes, requestsBytes, serializedTicket));
+                hashData = await Configuration.Hasher.GetHashDataAsync(requestEnvelope, signature, locationBytes, requestsBytes, serializedTicket);
             }
             catch (TimeoutException)
             {
