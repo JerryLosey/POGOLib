@@ -100,9 +100,9 @@ namespace POGOLib.Official.Util.Hash
 
             var requestContent = new StringContent(JsonConvert.SerializeObject(requestData), Encoding.UTF8, "application/json");
 
-            using (var response = await PerformRequest(requestContent))
+            using (var response = await Task.Run(async () => await PerformRequest(requestContent)))
             {
-                var responseContent = await response.Content.ReadAsStringAsync();
+                var responseContent = await Task.Run(async () => await response.Content.ReadAsStringAsync());
 
                 string message = String.Empty;
 
