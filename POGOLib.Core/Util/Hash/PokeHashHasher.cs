@@ -149,7 +149,8 @@ namespace POGOLib.Official.Util.Hash
                 if (!String.IsNullOrEmpty(message))// retryCount == 10)
                     throw new PokeHashException(message);
             }
-            throw new PokeHashException($"We received an unknown HttpStatusCode ..");
+            //throw new PokeHashException($"We received an unknown HttpStatusCode ..");
+            return null;
         }
 
         private async Task<HttpResponseMessage> PerformRequest(HttpContent requestContent)
