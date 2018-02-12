@@ -338,7 +338,6 @@ namespace POGOLib.Official.Net
                     else
                         Logger.Debug("Authenticated through Google.");
 
-                    OnAccessTokenUpdated();
                     return accessToken;
                 }
                 catch (PtcLoginException ex)
@@ -369,6 +368,10 @@ namespace POGOLib.Official.Net
                         var sleepSeconds = Math.Min(60, tries * 5);
                         Logger.Error($"Reauthentication failed, trying again in {sleepSeconds} seconds.");
                         await Task.Delay(TimeSpan.FromMilliseconds(sleepSeconds * 1000));
+                    }
+                    else
+                    {
+                        OnAccessTokenUpdated();
                     }
                 }
             }
