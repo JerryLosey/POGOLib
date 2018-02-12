@@ -311,8 +311,6 @@ namespace POGOLib.Official.Net
                 {
                     return await Reauthenticate();
                 });
-
-               // return AccessToken;
             }
             finally
             {
