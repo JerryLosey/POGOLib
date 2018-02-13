@@ -196,6 +196,7 @@ namespace POGOLib.Official.Net
             var requestsBytes = requestEnvelope.Requests.Select(x => x.ToByteArray()).ToArray();
 
             HashData hashData = null;
+
             try
             {
                 hashData = await Configuration.Hasher.GetHashDataAsync(requestEnvelope, signature, locationBytes, requestsBytes, serializedTicket);
@@ -206,19 +207,21 @@ namespace POGOLib.Official.Net
             }
             catch (PokeHashException ex1)
             {
-                throw new PokeHashException(ex1.Message);
+                throw ex1;
             }
             catch (SessionStateException ex1)
             {
-                throw new SessionStateException(ex1.Message);
+                throw ex1;
             }
             catch (Exception ex1)
             {
-                throw new Exception(ex1.Message);
+                throw ex1;
             }
 
             if (hashData == null)
+            {
                 throw new PokeHashException("Missed Hash Data");
+            }
 
             signature.LocationHash1 = (int)hashData.LocationAuthHash;
             signature.LocationHash2 = (int)hashData.LocationHash;

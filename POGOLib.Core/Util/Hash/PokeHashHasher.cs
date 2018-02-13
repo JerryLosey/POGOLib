@@ -87,6 +87,8 @@ namespace POGOLib.Official.Util.Hash
 
         public async Task<HashData> GetHashDataAsync(RequestEnvelope requestEnvelope, Signature signature, byte[] locationBytes, byte[][] requestsBytes, byte[] serializedTicket)
         {
+            int retries = 3;
+
             var requestData = new PokeHashRequest
             {
                 Timestamp = signature.Timestamp,
@@ -100,8 +102,23 @@ namespace POGOLib.Official.Util.Hash
 
             var requestContent = new StringContent(JsonConvert.SerializeObject(requestData), Encoding.UTF8, "application/json");
 
+            resend:
+
             using (var response = await PerformRequest(requestContent))
             {
+                if (response == null)
+                {
+                    //re send
+                    if (retries > 0)
+                    {
+                        retries--;
+                        await Task.Delay(1000);
+                        goto resend;
+                    }
+
+                    return null;
+                }
+
                 var responseContent = await response.Content.ReadAsStringAsync();
 
                 string message = String.Empty;
@@ -133,6 +150,13 @@ namespace POGOLib.Official.Util.Hash
                         break;
 
                     case (HttpStatusCode)429:
+                        //re send
+                        if (retries > 0)
+                        {
+                            retries--;
+                            await Task.Delay(1000);
+                            goto resend;
+                        }
                         message = $"Your request has been limited. {response}";
                         break;
 
@@ -157,12 +181,12 @@ namespace POGOLib.Official.Util.Hash
         {
             //Retries
             int retries = 3;
+            HttpResponseMessage response = null;
 
             // Key selection
             _keySelection.WaitOne();
             try
             {
-                HttpResponseMessage response = null;
                 PokeHashAuthKey authKey;
                 do
                 {
@@ -256,8 +280,8 @@ namespace POGOLib.Official.Util.Hash
             {
                 _keySelection.Release();
             }
-
-            throw new PokeHashException("Hash API server might be down.");
+            return response;
+            //throw new PokeHashException("Hash API server might be down.");
         }
 
         public byte[] GetEncryptedSignature(byte[] signatureBytes, uint timestampSinceStartMs)

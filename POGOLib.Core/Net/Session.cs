@@ -43,7 +43,7 @@ namespace POGOLib.Official.Net
         /// Only use this if you know what you are doing.
         /// </summary>
         public readonly RpcClient RpcClient;
-        
+
         public readonly Logger Logger;
 
         private static readonly string[] ValidLoginProviders = { "ptc", "google" };
@@ -65,7 +65,7 @@ namespace POGOLib.Official.Net
             State = SessionState.Stopped;
 
             Device = deviceWrapper;
- 
+
             var handler = new HttpClientHandler
             {
                 AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
@@ -307,7 +307,8 @@ namespace POGOLib.Official.Net
                 if (IsValidAccessToken())
                     return AccessToken;
 
-                 return await Reauthenticate();
+                await Task.Run(() => Reauthenticate());
+                return AccessToken;
             }
             finally
             {
@@ -318,7 +319,7 @@ namespace POGOLib.Official.Net
         /// <summary>
         /// Ensures the <see cref="Session" /> gets reauthenticated, no matter how long it takes.
         /// </summary>
-        private async Task<AccessToken> Reauthenticate()
+        private async Task Reauthenticate()
         {
             var tries = 0;
 
@@ -327,13 +328,11 @@ namespace POGOLib.Official.Net
                 try
                 {
                     string language = this.Player.PlayerLocale.Language + "-" + this.Player.PlayerLocale.Country;
-                    AccessToken accessToken = await LoginProvider.GetAccessToken(this.Device.UserAgent, language);
+                    AccessToken = await LoginProvider.GetAccessToken(this.Device.UserAgent, language);
                     if (LoginProvider is PtcLoginProvider)
                         Logger.Debug("Authenticated through PTC.");
                     else
                         Logger.Debug("Authenticated through Google.");
-
-                    return accessToken;
                 }
                 catch (PtcLoginException ex)
                 {

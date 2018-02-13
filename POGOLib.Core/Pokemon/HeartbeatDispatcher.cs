@@ -19,7 +19,7 @@ namespace POGOLib.Official.Pokemon
         /// </summary>
         private CancellationTokenSource _heartbeatCancellation;
 
-        private Task _heartbeatTask;        
+        private Task _heartbeatTask;
 
         internal HeartbeatDispatcher(Session session)
         {
@@ -84,7 +84,7 @@ namespace POGOLib.Official.Pokemon
                 }
                 catch (HashVersionMismatchException ex)
                 {
-                    throw new HashVersionMismatchException(ex.Message);
+                    throw ex;
                 }
                 // cancelled
                 catch (OperationCanceledException)
@@ -93,7 +93,7 @@ namespace POGOLib.Official.Pokemon
                 }
                 catch (Exception e)
                 {
-                    throw new Exception(e.Message);
+                    throw e;
                 }
                 finally
                 {
@@ -131,7 +131,7 @@ namespace POGOLib.Official.Pokemon
 
         private async Task Dispatch()
         {
-           await _session.RpcClient.RefreshMapObjectsAsync();
+            await _session.RpcClient.RefreshMapObjectsAsync();
         }
     }
 }
