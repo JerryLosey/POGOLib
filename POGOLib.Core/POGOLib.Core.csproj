@@ -12,9 +12,9 @@
     <PackageProjectUrl>https://github.com/Furtif/POGOLib/tree/core</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/Furtif/POGOLib/tree/core</RepositoryUrl>
-    <Version>2.1.2</Version>
-    <AssemblyVersion>2.1.2.0</AssemblyVersion>
-    <FileVersion>2.1.2.0</FileVersion>
+    <Version>2.1.3</Version>
+    <AssemblyVersion>2.1.3.0</AssemblyVersion>
+    <FileVersion>2.1.3.0</FileVersion>
     <Platforms>AnyCPU;x64;x86</Platforms>
     <Company>AeonLucid</Company>
     <PackageReleaseNotes></PackageReleaseNotes>
@@ -24,7 +24,7 @@
     <PackageReference Include="POGOProtos.Core" Version="2.22.0" />
     <PackageReference Include="Google.Protobuf" Version="3.5.1" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
-    <PackageReference Include="Portable.BouncyCastle" Version="1.8.1.3" />
+    <PackageReference Include="Portable.BouncyCastle" Version="1.8.1.4" />
     <PackageReference Include="S2Geometry" Version="1.0.3" />
   </ItemGroup>
 
