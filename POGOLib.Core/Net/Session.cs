@@ -307,10 +307,7 @@ namespace POGOLib.Official.Net
                 if (IsValidAccessToken())
                     return AccessToken;
 
-                return await Task.Run(async () =>
-                {
-                    return await Reauthenticate();
-                });
+                 return await Reauthenticate();
             }
             finally
             {

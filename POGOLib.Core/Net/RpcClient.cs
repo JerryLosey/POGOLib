@@ -223,24 +223,21 @@ namespace POGOLib.Official.Net
                 if (mapObjects.Status == MapObjectsStatus.Success)
                 {
                     // TODO: Cleaner?
-                    await Task.Run(() =>
-                     {
-                         var pokemonCatchable = mapObjects.MapCells.SelectMany(c => c.CatchablePokemons).Count();
-                         var pokemonWild = mapObjects.MapCells.SelectMany(c => c.WildPokemons).Count();
-                         var pokemonNearby = mapObjects.MapCells.SelectMany(c => c.NearbyPokemons).Count();
-                         var pokemonCount = pokemonCatchable + pokemonWild + pokemonNearby;
+                    var pokemonCatchable = mapObjects.MapCells.SelectMany(c => c.CatchablePokemons).Count();
+                    var pokemonWild = mapObjects.MapCells.SelectMany(c => c.WildPokemons).Count();
+                    var pokemonNearby = mapObjects.MapCells.SelectMany(c => c.NearbyPokemons).Count();
+                    var pokemonCount = pokemonCatchable + pokemonWild + pokemonNearby;
 
-                         _session.Logger.Debug($"Received '{mapObjects.MapCells.Count}' map cells.");
-                         _session.Logger.Debug($"Received '{pokemonCount}' pokemons. Catchable({pokemonCatchable}) Wild({pokemonWild}) Nearby({pokemonNearby})");
-                         _session.Logger.Debug($"Received '{mapObjects.MapCells.SelectMany(c => c.Forts).Count()}' forts.");
+                    _session.Logger.Debug($"Received '{mapObjects.MapCells.Count}' map cells.");
+                    _session.Logger.Debug($"Received '{pokemonCount}' pokemons. Catchable({pokemonCatchable}) Wild({pokemonWild}) Nearby({pokemonNearby})");
+                    _session.Logger.Debug($"Received '{mapObjects.MapCells.SelectMany(c => c.Forts).Count()}' forts.");
 
-                         if (mapObjects.MapCells.Count == 0)
-                         {
-                             throw new SessionStateException("We received 0 map cells, are your session is stoped?");
-                         }
+                    if (mapObjects.MapCells.Count == 0)
+                    {
+                        throw new SessionStateException("We received 0 map cells, are your session is stoped?");
+                    }
 
-                         _session.Map.Cells = mapObjects.MapCells;
-                     });
+                    _session.Map.Cells = mapObjects.MapCells;
                 }
                 else
                 {

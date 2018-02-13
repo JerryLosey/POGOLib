@@ -71,7 +71,7 @@ namespace POGOLib.Official.Pokemon
                 {
                     if (canRefresh)
                     {
-                        await Task.Run(async () => await Dispatch());
+                        await Dispatch();
                     }
                 }
                 catch (SessionInvalidatedException ex)
