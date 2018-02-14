@@ -36,7 +36,7 @@ namespace POGOLib.Official.Net
         /// <summary>
         /// This is the <see cref="HeartbeatDispatcher" /> which is responsible for retrieving events and updating gps location.
         /// </summary>
-        private readonly HeartbeatDispatcher _heartbeat;
+        private readonly HeartbeatDispatcher Heartbeat;
 
         /// <summary>
         /// This is the <see cref="RpcClient" /> which is responsible for all communication between us and PokémonGo.
@@ -79,12 +79,15 @@ namespace POGOLib.Official.Net
             HttpClient.DefaultRequestHeaders.ExpectContinue = false;
 
             AccessToken = accessToken;
+            //Send AccessToken
+            OnAccessTokenUpdated();
+
             LoginProvider = loginProvider;
             Player = new Player(this, geoCoordinate, playerLocale);
             Map = new Map(this);
             Templates = new Templates(this);
             RpcClient = new RpcClient(this);
-            _heartbeat = new HeartbeatDispatcher(this);
+            Heartbeat = new HeartbeatDispatcher(this);
         }
 
         /// <summary>
@@ -213,7 +216,7 @@ namespace POGOLib.Official.Net
                 return false;
             }
 
-            await _heartbeat.StartDispatcherAsync();
+            await Heartbeat.StartDispatcherAsync();
 
             return true;
         }
@@ -228,7 +231,7 @@ namespace POGOLib.Official.Net
 
             State = SessionState.Paused;
 
-            _heartbeat.StopDispatcher();
+            Heartbeat.StopDispatcher();
         }
 
         public async Task ResumeAsync()
@@ -240,7 +243,7 @@ namespace POGOLib.Official.Net
 
             State = SessionState.Resumed;
 
-            await _heartbeat.StartDispatcherAsync();
+            await Heartbeat.StartDispatcherAsync();
         }
 
         public void Shutdown()
@@ -253,7 +256,7 @@ namespace POGOLib.Official.Net
             if (State != SessionState.TemporalBanned)
                 State = SessionState.Stopped;
 
-            _heartbeat.StopDispatcher();
+            Heartbeat.StopDispatcher();
         }
 
         /// <summary>
@@ -307,7 +310,7 @@ namespace POGOLib.Official.Net
                 if (IsValidAccessToken())
                     return AccessToken;
 
-                await Task.Run(() => Reauthenticate());
+                await Reauthenticate();
                 return AccessToken;
             }
             finally
@@ -337,12 +340,12 @@ namespace POGOLib.Official.Net
                 catch (PtcLoginException ex)
                 {
                     if (ex.Message.Contains("15 minutes")) throw new PtcLoginException(ex.Message);
-                    throw new Exception($"Reauthenticate exception was catched: {ex}");
+                    throw new PtcLoginException($"Reauthenticate exception was catched: {ex}");
                 }
                 catch (GoogleLoginException ex)
                 {
                     if (ex.Message.Contains("You have to log into a browser")) throw new GoogleLoginException(ex.Message);
-                    throw new Exception($"Reauthenticate exception was catched: {ex}");
+                    throw new GoogleLoginException($"Reauthenticate exception was catched: {ex}");
                 }
                 catch (Exception ex)
                 {
@@ -368,6 +371,7 @@ namespace POGOLib.Official.Net
                         OnAccessTokenUpdated();
                     }
                 }
+                return;
             }
             throw new SessionStateException("Error refreshing access token.");
         }

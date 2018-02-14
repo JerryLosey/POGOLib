@@ -154,7 +154,7 @@ namespace POGOLib.Official.Net
             _session.Player.Data = playerResponse.PlayerData;
             _session.Player.Banned = playerResponse.Banned;
             _session.Player.Warn = playerResponse.Warn;
-            
+
             //New in Protos ???
             //if (playerResponse.WasCreated)
             //{
@@ -204,14 +204,8 @@ namespace POGOLib.Official.Net
                 RequestType = RequestType.GetMapObjects,
                 RequestMessage = new GetMapObjectsMessage
                 {
-                    CellId =
-                    {
-                        cellIds
-                    },
-                    SinceTimestampMs =
-                    {
-                        sinceTimeMs
-                    },
+                    CellId = { cellIds },
+                    SinceTimestampMs = { sinceTimeMs },
                     Latitude = _session.Player.Coordinate.Latitude,
                     Longitude = _session.Player.Coordinate.Longitude
                 }.ToByteString()
@@ -238,17 +232,23 @@ namespace POGOLib.Official.Net
                     }
 
                     _session.Map.Cells = mapObjects.MapCells;
+                    return;
                 }
                 else
                 {
+                    _session.Map.Cells = new RepeatedField<MapCell>();
                     throw new SessionStateException($"GetMapObjects status is: '{mapObjects.Status}'.");
                 }
             }
             else if (_session.State != SessionState.Paused)
             {
                 // POGOLib didn't expect this.
+                _session.Map.Cells = new RepeatedField<MapCell>();
                 throw new SessionStateException("We received 0 map cells or status is empty.");
             }
+
+            _session.Map.Cells = new RepeatedField<MapCell>();
+            throw new SessionStateException("We received 0 map cells or status is empty.");
         }
 
         /// <summary>
@@ -486,11 +486,11 @@ namespace POGOLib.Official.Net
                 //Session is paused this is not in semafore!!
                 if (requestEnvelope.Requests.FirstOrDefault()?.RequestType == RequestType.VerifyChallenge)
                 {
-                     _rpcResponses.GetOrAdd(requestEnvelope, await PerformRemoteProcedureCallAsync(requestEnvelope));
+                    _rpcResponses.GetOrAdd(requestEnvelope, await PerformRemoteProcedureCallAsync(requestEnvelope));
 
-                     ByteString req;
-                     _rpcResponses.TryRemove(requestEnvelope, out req);
-                     return req;
+                    ByteString req;
+                    _rpcResponses.TryRemove(requestEnvelope, out req);
+                    return req;
                 }
 
                 _rpcQueue.Enqueue(requestEnvelope);
@@ -533,6 +533,11 @@ namespace POGOLib.Official.Net
 
         private async Task<ByteString> PerformRemoteProcedureCallAsync(RequestEnvelope requestEnvelope)
         {
+            if (requestEnvelope == null)
+            {
+                return null;
+            }
+
             try
             {
                 switch (_session.State)
@@ -576,7 +581,7 @@ namespace POGOLib.Official.Net
                         {
                             // Valid response.
                             case ResponseEnvelope.Types.StatusCode.Ok:
-                                // Success!?
+                                // Success!?                                
                                 break;
 
                             // Valid response and new rpc url.
@@ -605,12 +610,6 @@ namespace POGOLib.Official.Net
                             // The login token is invalid.
                             // TODO: Make cleaner to reduce duplicate code with the GetRequestEnvelopeAsync method.
                             case ResponseEnvelope.Types.StatusCode.InvalidAuthToken:
-                                //TODO: Make session invalidate and reconect...
-                                //await Task.Delay(10000); //wait 10 secs on grave bug
-                                //throw new SessionInvalidatedException("Received StatusCode 102, reauthenticating.");
-
-                                //TODO: All next closes Dispacher
-                                //*/
                                 _session.Logger.Debug("Received StatusCode 102, reauthenticating.");
 
                                 await _session.GetValidAccessToken(true);
@@ -644,22 +643,21 @@ namespace POGOLib.Official.Net
                                 // Apply new PlatformRequests to envelope.
                                 requestEnvelope.PlatformRequests.Add(await _rpcEncryption.GenerateSignatureAsync(requestEnvelope));
 
-                                // Re-send envelope.                               
+                                // Re-send envelope. 
                                 return await PerformRemoteProcedureCallAsync(requestEnvelope);
                                 //*/
                             case ResponseEnvelope.Types.StatusCode.BadRequest:
-                                // Your account may be banned! please try from the official client.
                                 await Task.Delay(10000); //wait 10 secs on grave bug
                                 throw new APIBadRequestException("BAD REQUEST");
                             case ResponseEnvelope.Types.StatusCode.SessionInvalidated:
                                 await Task.Delay(10000); //wait 10 secs on grave bug
-                                throw new SessionInvalidatedException("SESSION INVALIDATED EXCEPTION");
+                                throw new SessionInvalidatedException("SESSION INVALIDATED");
                             case ResponseEnvelope.Types.StatusCode.Unknown:
                                 await Task.Delay(10000); //wait 10 secs on grave bug
                                 throw new SessionUnknowException("UNKNOWN");
                             case ResponseEnvelope.Types.StatusCode.InvalidPlatformRequest:
                                 await Task.Delay(10000); //wait 10 secs on grave bug
-                                throw new InvalidPlatformException("INVALID PLATFORM EXCEPTION");
+                                throw new InvalidPlatformException("INVALID PLATFORM REQUEST");
                             case ResponseEnvelope.Types.StatusCode.InvalidRequest:
                                 await Task.Delay(10000); //wait 10 secs on grave bug
                                 throw new InvalidPlatformException("INVALID REQUEST");
@@ -694,11 +692,11 @@ namespace POGOLib.Official.Net
             }
             catch (SessionInvalidatedException ex)
             {
-                throw new SessionInvalidatedException(ex.Message);
+                throw ex;
             }
             catch (InvalidPlatformException ex)
             {
-                throw new InvalidPlatformException(ex.Message);
+                throw ex;
             }
             catch (APIBadRequestException ex)
             {
@@ -710,35 +708,37 @@ namespace POGOLib.Official.Net
                     _session.SetTemporalBan();
                     throw new SessionStateException("Your account may be temporary banned! please try from the official client.");
                 }
-                throw new APIBadRequestException(ex.Message);
+
+                return await PerformRemoteProcedureCallAsync(requestEnvelope);
+                //throw ex;
             }
             catch (SessionUnknowException ex)
             {
-                throw new SessionUnknowException(ex.Message);
+                throw ex;
             }
             catch (ArgumentOutOfRangeException ex)
             {
-                throw new ArgumentOutOfRangeException(ex.Message);
+                throw ex;
             }
             catch (PokeHashException ex)
             {
-                throw new PokeHashException(ex.Message);
+                throw ex;
             }
             catch (PtcLoginException ex)
             {
-                throw new PtcLoginException(ex.Message);
+                throw ex;
             }
             catch (HashVersionMismatchException ex)
             {
-                throw new HashVersionMismatchException(ex.Message);
+                throw ex;
             }
             catch (GoogleLoginException ex)
             {
-                throw new GoogleLoginException(ex.Message);
+                throw ex;
             }
             catch (SessionStateException e)
             {
-                throw new SessionStateException(e.Message);
+                throw e;
             }
             catch (Exception ex)
             {
@@ -1244,7 +1244,7 @@ namespace POGOLib.Official.Net
             if (response != null)
             {
                 var fetchAllNewsResponse = FetchAllNewsResponse.Parser.ParseFrom(response);
-                
+
                 switch (fetchAllNewsResponse.Result)
                 {
                     case FetchAllNewsResponse.Types.Result.NoNewsFound:

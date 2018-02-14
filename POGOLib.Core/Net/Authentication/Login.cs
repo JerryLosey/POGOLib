@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using POGOLib.Official.Exceptions;
 using POGOLib.Official.Extensions;
 using POGOLib.Official.LoginProviders;
 using POGOLib.Official.Net.Authentication.Data;
@@ -23,16 +24,17 @@ namespace POGOLib.Official.Net.Authentication
         /// <param name="deviceWrapper">The <see cref="DeviceWrapper"/> used by the <see cref="Session"/>, keep null if you want a randomly generated <see cref="DeviceWrapper"/>.</param>
         /// <param name = "playerLocale"></param>
         /// <returns></returns>
-        public static Session GetSession(ILoginProvider loginProvider, AccessToken accessToken, double initialLatitude, double initialLongitude, DeviceWrapper deviceWrapper = null, GetPlayerMessage.Types.PlayerLocale playerLocale = null)
+        public static async Task<Session> GetSession(ILoginProvider loginProvider, AccessToken accessToken, double initialLatitude, double initialLongitude, DeviceWrapper deviceWrapper = null, GetPlayerMessage.Types.PlayerLocale playerLocale = null)
         {
             DeviceWrapper device = deviceWrapper ?? DeviceInfoUtil.GetRandomDevice();
             GetPlayerMessage.Types.PlayerLocale locale = playerLocale ?? new GetPlayerMessage.Types.PlayerLocale { Country = "US", Language = "en", Timezone = "America/New_York" };
             string language = locale.Language + "-" + locale.Country;
 
-            if (accessToken.IsExpired)
+            if (accessToken == null || string.IsNullOrEmpty(accessToken.Token) || accessToken.IsExpired)
             {
-                accessToken = loginProvider.GetAccessToken(device.UserAgent, language).Result;
-                //throw new ArgumentException($"{nameof(accessToken)} is expired.");
+                accessToken = await loginProvider.GetAccessToken(device.UserAgent, language);
+                if (accessToken == null || string.IsNullOrEmpty(accessToken.Token) || accessToken.IsExpired)
+                    throw new SessionStateException($"{nameof(accessToken)} is expired.");
             }
 
             var session = new Session(loginProvider, accessToken, new GeoCoordinate(initialLatitude, initialLongitude), device, locale);
@@ -70,18 +72,17 @@ namespace POGOLib.Official.Net.Authentication
         /// <param name="deviceWrapper">The <see cref="DeviceWrapper"/> used by the <see cref="Session"/>, keep null if you want a randomly generated <see cref="DeviceWrapper"/>.</param>
         /// <param name = "playerLocale"></param>
         /// <returns></returns>
-        public static Session GetSession(ILoginProvider loginProvider, AccessToken accessToken, GeoCoordinate coordinate, DeviceWrapper deviceWrapper = null, GetPlayerMessage.Types.PlayerLocale playerLocale = null)
-        {
-           
-
+        public static async Task<Session> GetSession(ILoginProvider loginProvider, AccessToken accessToken, GeoCoordinate coordinate, DeviceWrapper deviceWrapper = null, GetPlayerMessage.Types.PlayerLocale playerLocale = null)
+        {      
             DeviceWrapper device = deviceWrapper ?? DeviceInfoUtil.GetRandomDevice();
             GetPlayerMessage.Types.PlayerLocale locale = playerLocale ?? new GetPlayerMessage.Types.PlayerLocale { Country = "US", Language = "en", Timezone = "America/New_York" };
             string language = locale.Language + "-" + locale.Country;
-            
-            if (accessToken.IsExpired)
+
+            if (accessToken == null || string.IsNullOrEmpty(accessToken.Token) || accessToken.IsExpired)
             {
-                accessToken = loginProvider.GetAccessToken(device.UserAgent, language).Result;
-                //throw new ArgumentException($"{nameof(accessToken)} is expired.");
+                accessToken = await loginProvider.GetAccessToken(device.UserAgent, language);
+                if (accessToken == null || string.IsNullOrEmpty(accessToken.Token) || accessToken.IsExpired)
+                    throw new SessionStateException($"{nameof(accessToken)} is expired.");
             }
 
             var session = new Session(loginProvider, accessToken, coordinate, device, locale);

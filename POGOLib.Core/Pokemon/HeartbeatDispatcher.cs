@@ -87,9 +87,10 @@ namespace POGOLib.Official.Pokemon
                     throw ex;
                 }
                 // cancelled
-                catch (OperationCanceledException)
+                catch (OperationCanceledException ex)
                 {
-                    break;
+                    throw ex;
+                    //break;
                 }
                 catch (Exception e)
                 {
