@@ -245,7 +245,7 @@ namespace POGOLib.Official.Demo.ConsoleApp
                     var accessToken = JsonConvert.DeserializeObject<AccessToken>(File.ReadAllText(fileName));
 
                     if (!accessToken.IsExpired)
-                        return Login.GetSession(loginProvider, accessToken, initLat, initLong);
+                        return await Login.GetSession(loginProvider, accessToken, initLat, initLong);
                 }
             }
 
