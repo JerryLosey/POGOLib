@@ -562,8 +562,14 @@ namespace POGOLib.Official.Net
 
                 using (var requestData = new ByteArrayContent(requestEnvelope.ToByteArray()))
                 {
+                    if (requestData == null)
+                        throw new SessionStateException($"RequestData is null");
+
                     using (var response = await _session.HttpClient.PostAsync(_requestUrl ?? Constants.ApiUrl, requestData))
                     {
+                        if (response == null)
+                            throw new SessionStateException($"RequestData response is null");
+
                         _session.Logger.Debug("Sending RPC Request: '" + string.Join(", ", requestEnvelope.Requests.Select(x => x.RequestType)) + "'");
                         _session.Logger.Debug("=> Platform Request: '" + string.Join(", ", requestEnvelope.PlatformRequests.Select(x => x.Type)) + "'");
 
@@ -709,8 +715,14 @@ namespace POGOLib.Official.Net
                     throw new SessionStateException("Your account may be temporary banned! please try from the official client.");
                 }
 
-                return await PerformRemoteProcedureCallAsync(requestEnvelope);
-                //throw ex;
+                //TODO: For review
+                var resend = await PerformRemoteProcedureCallAsync(requestEnvelope);
+
+                if (resend == null)
+                    throw ex;
+                else
+                    return resend;
+                //
             }
             catch (SessionUnknowException ex)
             {
