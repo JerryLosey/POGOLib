@@ -649,9 +649,15 @@ namespace POGOLib.Official.Net
                                 // Apply new PlatformRequests to envelope.
                                 requestEnvelope.PlatformRequests.Add(await _rpcEncryption.GenerateSignatureAsync(requestEnvelope));
 
-                                // Re-send envelope. 
-                                return await PerformRemoteProcedureCallAsync(requestEnvelope);
-                                //*/
+                                // Re-send envelope.
+                                ByteString resend = null;
+                                resend = await PerformRemoteProcedureCallAsync(requestEnvelope);
+
+                                if (resend == null)
+                                    throw new SessionStateException("INVALID AUTH TOKEN");
+                                else
+                                    return resend;
+                                throw new SessionStateException("INVALID AUTH TOKEN");
                             case ResponseEnvelope.Types.StatusCode.BadRequest:
                                 await Task.Delay(10000); //wait 10 secs on grave bug
                                 throw new APIBadRequestException("BAD REQUEST");
@@ -663,7 +669,7 @@ namespace POGOLib.Official.Net
                                 throw new SessionUnknowException("UNKNOWN");
                             case ResponseEnvelope.Types.StatusCode.InvalidPlatformRequest:
                                 await Task.Delay(10000); //wait 10 secs on grave bug
-                                throw new InvalidPlatformException("INVALID PLATFORM REQUEST");
+                               throw new InvalidPlatformException("INVALID PLATFORM REQUEST");
                             case ResponseEnvelope.Types.StatusCode.InvalidRequest:
                                 await Task.Delay(10000); //wait 10 secs on grave bug
                                 throw new InvalidPlatformException("INVALID REQUEST");
@@ -715,14 +721,7 @@ namespace POGOLib.Official.Net
                     throw new SessionStateException("Your account may be temporary banned! please try from the official client.");
                 }
 
-                //TODO: For review
-                var resend = await PerformRemoteProcedureCallAsync(requestEnvelope);
-
-                if (resend == null)
-                    throw ex;
-                else
-                    return resend;
-                //
+               throw new APIBadRequestException(ex.Message);
             }
             catch (SessionUnknowException ex)
             {

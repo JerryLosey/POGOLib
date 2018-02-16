@@ -197,46 +197,50 @@ namespace POGOLib.Official.Net
 
             HashData hashData = null;
 
-            try
+            do
             {
-                hashData = await Configuration.Hasher.GetHashDataAsync(requestEnvelope, signature, locationBytes, requestsBytes, serializedTicket);
-            }
-            catch (TimeoutException)
-            {
-                throw new PokeHashException("Hasher server might down - timeout out");
-            }
-            catch (PokeHashException ex1)
-            {
-                throw ex1;
-            }
-            catch (SessionStateException ex1)
-            {
-                throw ex1;
-            }
-            catch (Exception ex1)
-            {
-                throw ex1;
-            }
-
-            if (hashData == null)
-            {
-                throw new PokeHashException("Missed Hash Data");
-            }
-
-            signature.LocationHash1 = (int)hashData.LocationAuthHash;
-            signature.LocationHash2 = (int)hashData.LocationHash;
-            signature.RequestHash.AddRange(hashData.RequestHashes);
-
-            var encryptedSignature = new PlatformRequest
-            {
-                Type = PlatformRequestType.SendEncryptedSignature,
-                RequestMessage = new SendEncryptedSignatureRequest
+                try
                 {
-                    EncryptedSignature = ByteString.CopyFrom(Configuration.Hasher.GetEncryptedSignature(signature.ToByteArray(), (uint)timestampSinceStart))
-                }.ToByteString()
-            };
+                    hashData = await Configuration.Hasher.GetHashDataAsync(requestEnvelope, signature, locationBytes, requestsBytes, serializedTicket);
+                }
+                catch (TimeoutException)
+                {
+                    throw new PokeHashException("Hasher server might down - timeout out");
+                }
+                catch (PokeHashException ex1)
+                {
+                    throw ex1;
+                }
+                catch (SessionStateException ex1)
+                {
+                    throw ex1;
+                }
+                catch (Exception ex1)
+                {
+                    throw ex1;
+                }
 
-            return encryptedSignature;
+                /*if (hashData == null)
+                {
+                    throw new PokeHashException("Missed Hash Data");
+                }*/
+
+                signature.LocationHash1 = (int)hashData.LocationAuthHash;
+                signature.LocationHash2 = (int)hashData.LocationHash;
+                signature.RequestHash.AddRange(hashData.RequestHashes);
+
+                var encryptedSignature = new PlatformRequest
+                {
+                    Type = PlatformRequestType.SendEncryptedSignature,
+                    RequestMessage = new SendEncryptedSignatureRequest
+                    {
+                        EncryptedSignature = ByteString.CopyFrom(Configuration.Hasher.GetEncryptedSignature(signature.ToByteArray(), (uint)timestampSinceStart))
+                    }.ToByteString()
+                };
+
+                return encryptedSignature;
+            } while (hashData == null);
+            throw new PokeHashException("Missed Hash Data");
         }
     }
 }

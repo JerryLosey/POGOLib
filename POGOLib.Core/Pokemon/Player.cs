@@ -86,13 +86,22 @@ namespace POGOLib.Official.Pokemon
         /// <param name="altitude">The altitude of your location.</param>
         public void SetCoordinates(double latitude, double longitude, double altitude = 100)
         {
-            Coordinate = new GeoCoordinate(latitude, longitude, altitude);
+            if (altitude != 100 && altitude > 0)
+            {
+                Coordinate = new GeoCoordinate(latitude, longitude, altitude);
+                Altitude = altitude;
+                return;
+            }
+
+            Coordinate = new GeoCoordinate(latitude, longitude);
+            Altitude = Coordinate.Altitude;
 
             //make fake altitude
             if (Altitude == 0)
             {
                 var randAlt = new Random();
-                Altitude = randAlt.NextDouble(1, 100);
+                Altitude = randAlt.NextDouble(5, 45);
+                Coordinate = new GeoCoordinate(latitude, longitude, Altitude);
             }
         }
 
@@ -103,12 +112,14 @@ namespace POGOLib.Official.Pokemon
         public void SetCoordinates(GeoCoordinate coordinate)
         {
             Coordinate = coordinate;
+            Altitude = coordinate.Altitude;
 
             //make fake altitude
             if (Altitude == 0)
             {
                 var randAlt = new Random();
-                Altitude = randAlt.NextDouble(1, 100);
+                Altitude = randAlt.NextDouble(5, 45);
+                Coordinate = new GeoCoordinate(coordinate.Latitude, coordinate.Longitude, Altitude);
             }
         }
 
