@@ -19,6 +19,5 @@ namespace POGOLib.Official.Util.Hash
         Task<HashData> GetHashDataAsync(RequestEnvelope requestEnvelope, Signature signature, byte[] locationBytes, byte[][] requestsBytes, byte[] serializedTicket);
 
         byte[] GetEncryptedSignature(byte[] signatureBytes, uint timestampSinceStartMs);
-
     }
 }

@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Google.Protobuf.Collections;
 using POGOLib.Official.Exceptions;
 using POGOLib.Official.Net;
+using POGOProtos.Map;
 
 namespace POGOLib.Official.Pokemon
 {
@@ -87,10 +89,10 @@ namespace POGOLib.Official.Pokemon
                     throw ex;
                 }
                 // cancelled
-                catch (OperationCanceledException ex)
+                catch (OperationCanceledException)
                 {
-                    throw ex;
-                    //break;
+                    _session.Map.Cells = new RepeatedField<MapCell>();
+                    break;
                 }
                 catch (Exception e)
                 {

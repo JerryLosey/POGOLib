@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using POGOLib.Official.Exceptions;
 using POGOLib.Official.Extensions;
 using POGOLib.Official.LoginProviders;

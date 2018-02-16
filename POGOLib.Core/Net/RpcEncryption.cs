@@ -217,30 +217,27 @@ namespace POGOLib.Official.Net
                 }
                 catch (Exception ex1)
                 {
-                    throw ex1;
+                    throw new PokeHashException($"Missed Hash Data. {ex1}");
                 }
-
-                /*if (hashData == null)
-                {
-                    throw new PokeHashException("Missed Hash Data");
-                }*/
-
-                signature.LocationHash1 = (int)hashData.LocationAuthHash;
-                signature.LocationHash2 = (int)hashData.LocationHash;
-                signature.RequestHash.AddRange(hashData.RequestHashes);
-
-                var encryptedSignature = new PlatformRequest
-                {
-                    Type = PlatformRequestType.SendEncryptedSignature,
-                    RequestMessage = new SendEncryptedSignatureRequest
-                    {
-                        EncryptedSignature = ByteString.CopyFrom(Configuration.Hasher.GetEncryptedSignature(signature.ToByteArray(), (uint)timestampSinceStart))
-                    }.ToByteString()
-                };
-
-                return encryptedSignature;
             } while (hashData == null);
-            throw new PokeHashException("Missed Hash Data");
+
+            if (hashData == null)
+                throw new PokeHashException($"Missed Hash Data.");
+
+            signature.LocationHash1 = (int)hashData.LocationAuthHash;
+            signature.LocationHash2 = (int)hashData.LocationHash;
+            signature.RequestHash.AddRange(hashData.RequestHashes);
+
+            var encryptedSignature = new PlatformRequest
+            {
+                Type = PlatformRequestType.SendEncryptedSignature,
+                RequestMessage = new SendEncryptedSignatureRequest
+                {
+                    EncryptedSignature = ByteString.CopyFrom(Configuration.Hasher.GetEncryptedSignature(signature.ToByteArray(), (uint)timestampSinceStart))
+                }.ToByteString()
+            };
+
+            return encryptedSignature;
         }
     }
 }

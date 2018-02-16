@@ -87,8 +87,6 @@ namespace POGOLib.Official.Util.Hash
 
         public async Task<HashData> GetHashDataAsync(RequestEnvelope requestEnvelope, Signature signature, byte[] locationBytes, byte[][] requestsBytes, byte[] serializedTicket)
         {
-            int retries = 3;
-
             var requestData = new PokeHashRequest
             {
                 Timestamp = signature.Timestamp,
@@ -102,20 +100,10 @@ namespace POGOLib.Official.Util.Hash
 
             var requestContent = new StringContent(JsonConvert.SerializeObject(requestData), Encoding.UTF8, "application/json");
 
-            resend:
-
             using (var response = await PerformRequest(requestContent))
             {
                 if (response == null)
                 {
-                    //re send
-                    if (retries > 0)
-                    {
-                        retries--;
-                        await Task.Delay(1000);
-                        goto resend;
-                    }
-
                     return null;
                 }
 
@@ -150,14 +138,14 @@ namespace POGOLib.Official.Util.Hash
                         break;
 
                     case (HttpStatusCode)429:
-                        //re send
-                        if (retries > 0)
-                        {
-                            retries--;
-                            await Task.Delay(1000);
-                            goto resend;
-                        }
-                        message = $"Your request has been limited. {response}";
+                        //Re-send
+                        HashData resend = null;
+                        resend = await GetHashDataAsync(requestEnvelope, signature, locationBytes, requestsBytes, serializedTicket);
+
+                        if (resend == null)
+                            message = $"Your request has been limited. {response}";
+                        else
+                            return resend;
                         break;
 
                     default:
@@ -165,15 +153,13 @@ namespace POGOLib.Official.Util.Hash
                         break;
                 }
 
-                // TODO: Find a better way to let the developer know of these issues.
-                message = $"[PokeHash]: {message}";
-
-                //Logger.Error(message);
-
                 if (!String.IsNullOrEmpty(message))// retryCount == 10)
+                {
+                    // TODO: Find a better way to let the developer know of these issues.
+                    message = $"[PokeHash]: {message}";
                     throw new PokeHashException(message);
+                }
             }
-            //throw new PokeHashException($"We received an unknown HttpStatusCode ..");
             return null;
         }
 
@@ -281,7 +267,6 @@ namespace POGOLib.Official.Util.Hash
                 _keySelection.Release();
             }
             return response;
-            //throw new PokeHashException("Hash API server might be down.");
         }
 
         public byte[] GetEncryptedSignature(byte[] signatureBytes, uint timestampSinceStartMs)
