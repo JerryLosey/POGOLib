@@ -79,8 +79,13 @@ namespace POGOLib.Official.Net
             HttpClient.DefaultRequestHeaders.ExpectContinue = false;
 
             AccessToken = accessToken;
-            //Send AccessToken
-            OnAccessTokenUpdated();
+
+            if (IsValidAccessToken())
+            {
+                OnAccessTokenUpdated();
+            }
+            else
+                throw new SessionStateException("INVALID AUTH TOKEN");
 
             LoginProvider = loginProvider;
             Player = new Player(this, geoCoordinate, playerLocale);
@@ -371,9 +376,12 @@ namespace POGOLib.Official.Net
                         OnAccessTokenUpdated();
                     }
                 }
-                return;
             }
-            throw new SessionStateException("Error refreshing access token.");
+
+            if (!IsValidAccessToken())
+            {
+                throw new SessionStateException("Error refreshing access token.");
+            }
         }
 
         #region Events

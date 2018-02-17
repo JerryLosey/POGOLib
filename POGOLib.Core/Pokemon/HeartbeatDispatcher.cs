@@ -76,27 +76,14 @@ namespace POGOLib.Official.Pokemon
                         await Dispatch();
                     }
                 }
-                catch (SessionInvalidatedException ex)
-                {
-                    throw new SessionStateException($"Map refresh failed: {ex}");
-                }
-                catch (PokeHashException ex)
-                {
-                    throw new PokeHashException($"Hash problem: {ex}");
-                }
-                catch (HashVersionMismatchException ex)
-                {
-                    throw ex;
-                }
                 // cancelled
                 catch (OperationCanceledException)
                 {
-                    _session.Map.Cells = new RepeatedField<MapCell>();
                     break;
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
-                    throw e;
+                    //Null
                 }
                 finally
                 {
@@ -107,6 +94,7 @@ namespace POGOLib.Official.Pokemon
                 }
             }
 
+            _session.Map.Cells = new RepeatedField<MapCell>();
             firstRefreshCompleted?.TrySetResult(false);
             _session.Logger.Debug("Heartbeat got cancelled");
         }
