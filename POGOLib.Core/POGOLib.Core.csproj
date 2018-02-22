@@ -21,11 +21,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="POGOProtos.Core" Version="2.22.0" />
     <PackageReference Include="Google.Protobuf" Version="3.5.1" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
     <PackageReference Include="Portable.BouncyCastle" Version="1.8.1.4" />
     <PackageReference Include="S2Geometry" Version="1.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\POGOProtos\POGOProtos.Core.csproj" />
   </ItemGroup>
 
 </Project>
