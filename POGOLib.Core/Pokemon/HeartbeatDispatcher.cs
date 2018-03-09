@@ -10,7 +10,6 @@ namespace POGOLib.Official.Pokemon
 {
     internal class HeartbeatDispatcher
     {
-
         /// <summary>
         ///     The authenticated <see cref="Session" />.
         /// </summary>

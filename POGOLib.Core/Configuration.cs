@@ -17,6 +17,11 @@ namespace POGOLib.Official
         public static bool IgnoreHashVersion { get; set; } = false;
 
         /// <summary>
+        /// Gets or sets the <see cref="EnableHeartbeat"/> boolean. If set to true, session Heartbeat.
+        /// </summary>
+        public static bool EnableHeartbeat { get; set; } = true;
+
+        /// <summary>
         /// Gets or sets the <see cref="IHasher"/> used in <see cref="POGOLib.Official.Net.RpcEncryption"/>.
         /// </summary>
         public static IHasher Hasher { get; set; } = new LegacyHasher();

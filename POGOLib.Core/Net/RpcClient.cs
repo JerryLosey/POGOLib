@@ -68,8 +68,6 @@ namespace POGOLib.Official.Net
 
         private readonly Semaphore _rpcQueueMutex = new Semaphore(1, 1);
 
-        private RepeatedField<string> NewsIds = new RepeatedField<string>();
-
         internal RpcClient(Session session)
         {
             _session = session;
@@ -183,10 +181,11 @@ namespace POGOLib.Official.Net
             await SendRemoteProcedureCallAsync(PlatformRequestType.GetStoreItems);
 
             //FetchAllNews
-            await FetchAllNews();
+            RepeatedField<string> NewsIds = await FetchAllNews();
 
             //MarkReadNewsArticle
-            await MarkReadNewsArticle();
+            if (NewsIds.Count > 1)
+                await MarkReadNewsArticle(NewsIds);
 
             return true;
         }
@@ -1241,8 +1240,10 @@ namespace POGOLib.Official.Net
             }
         }
 
-        private async Task FetchAllNews()
+        private async Task<RepeatedField<string>> FetchAllNews()
         {
+            RepeatedField<string> NewsIds = new RepeatedField<string>();
+
             var response = await SendRemoteProcedureCallAsync(new Request
             {
                 RequestType = RequestType.FetchAllNews,
@@ -1267,15 +1268,18 @@ namespace POGOLib.Official.Net
                             {
                                 NewsIds.Add(art.Id);
                             }
+
+                            return NewsIds;
                         }
                         break;
                     case FetchAllNewsResponse.Types.Result.Unset:
                         break;
                 };
             }
+            return NewsIds;
         }
 
-        private async Task MarkReadNewsArticle()
+        private async Task MarkReadNewsArticle(RepeatedField<string> NewsIds)
         {
             var response = await SendRemoteProcedureCallAsync(new Request
             {

@@ -74,7 +74,6 @@ namespace POGOLib.Official.Net
             };
 
             HttpClient = new HttpClient(handler);
-
             HttpClient.DefaultRequestHeaders.UserAgent.TryParseAdd(Constants.ApiUserAgent);
             HttpClient.DefaultRequestHeaders.ExpectContinue = false;
 
@@ -92,7 +91,9 @@ namespace POGOLib.Official.Net
             Map = new Map(this);
             Templates = new Templates(this);
             RpcClient = new RpcClient(this);
-            Heartbeat = new HeartbeatDispatcher(this);
+
+            if (Configuration.EnableHeartbeat)
+                Heartbeat = new HeartbeatDispatcher(this);
         }
 
         /// <summary>
@@ -221,7 +222,8 @@ namespace POGOLib.Official.Net
                 return false;
             }
 
-            await Heartbeat.StartDispatcherAsync();
+            if (Configuration.EnableHeartbeat)
+                await Heartbeat.StartDispatcherAsync();
 
             return true;
         }
@@ -236,7 +238,8 @@ namespace POGOLib.Official.Net
 
             State = SessionState.Paused;
 
-            Heartbeat.StopDispatcher();
+            if (Configuration.EnableHeartbeat)
+                Heartbeat.StopDispatcher();
         }
 
         public async Task ResumeAsync()
@@ -248,7 +251,8 @@ namespace POGOLib.Official.Net
 
             State = SessionState.Resumed;
 
-            await Heartbeat.StartDispatcherAsync();
+            if (Configuration.EnableHeartbeat)
+                await Heartbeat.StartDispatcherAsync();
         }
 
         public void Shutdown()
@@ -261,7 +265,8 @@ namespace POGOLib.Official.Net
             if (State != SessionState.TemporalBanned)
                 State = SessionState.Stopped;
 
-            Heartbeat.StopDispatcher();
+            if (Configuration.EnableHeartbeat)
+                Heartbeat.StopDispatcher();
         }
 
         /// <summary>
@@ -284,6 +289,8 @@ namespace POGOLib.Official.Net
                 {
                     throw new HashVersionMismatchException($"The version of the {nameof(Configuration.Hasher)} ({Configuration.Hasher.PokemonVersion}) does not match the minimal API version of PokemonGo ({pogoVersion}). Set 'Configuration.IgnoreHashVersion' to true if you want to disable the version check.");
                 }
+
+                checkHttpClient.Dispose();
             }
         }
 
