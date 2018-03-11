@@ -21,6 +21,7 @@ using POGOLib.Official.Extensions;
 using POGOProtos.Map.Pokemon;
 using POGOLib.Official.Exceptions;
 using Google.Protobuf.Collections;
+using POGOLib.Official.Util.Hash;
 
 namespace POGOLib.Official.Net
 {
@@ -68,11 +69,14 @@ namespace POGOLib.Official.Net
 
         private readonly Semaphore _rpcQueueMutex = new Semaphore(1, 1);
 
+        public readonly IHasher Hasher;
+
         internal RpcClient(Session session)
         {
             _session = session;
             _rpcEncryption = new RpcEncryption(session);
             _mapKey = INITIAL_PTR8;
+            Hasher = Configuration.HashBuilder();
         }
 
         internal DateTime LastRpcRequest { get; private set; }

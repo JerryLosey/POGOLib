@@ -30,6 +30,8 @@ namespace POGOLib.Official.Util.Hash
         private readonly List<PokeHashAuthHasher> _authHashers
             = new List<PokeHashAuthHasher> { new PokeHashAuthHasher("PH", new Uri("http://hash.goman.io/")) };
 
+        public static Func<IHasher> HashBuilder = () => new LegacyHasher();
+
         private readonly Semaphore _keySelection;
 
         public Version PokemonVersion { get; } = new Version("0.91.2");
@@ -39,13 +41,16 @@ namespace POGOLib.Official.Util.Hash
 
         public long Unknown25 { get; } = unchecked((long)0xF522F8878F08FFD6);
 
+        public string[] APIKeys { get { return _authKeys.Select(x => x.AuthKey).ToArray(); } }
+        
+
         /// <summary>
         ///     Initializes the <see cref="PokeHashHasher"/>.
         /// </summary>
         /// <param name="authKey">The PokeHash authkey obtained from https://talk.pogodev.org/d/51-api-hashing-service-by-pokefarmer. </param>
         public PokeHashHasher(string authKey) : this(new[] { authKey })
         {
-
+            
         }
 
         /// <summary>

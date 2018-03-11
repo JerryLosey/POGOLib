@@ -201,7 +201,8 @@ namespace POGOLib.Official.Net
             {
                 try
                 {
-                    hashData = await Configuration.Hasher.GetHashDataAsync(requestEnvelope, signature, locationBytes, requestsBytes, serializedTicket);
+                    //hashData = await Configuration.Hasher.GetHashDataAsync(requestEnvelope, signature, locationBytes, requestsBytes, serializedTicket);
+                    hashData = await _session.RpcClient.Hasher.GetHashDataAsync(requestEnvelope, signature, locationBytes, requestsBytes, serializedTicket);
                 }
                 catch (TimeoutException)
                 {
@@ -233,7 +234,8 @@ namespace POGOLib.Official.Net
                 Type = PlatformRequestType.SendEncryptedSignature,
                 RequestMessage = new SendEncryptedSignatureRequest
                 {
-                    EncryptedSignature = ByteString.CopyFrom(Configuration.Hasher.GetEncryptedSignature(signature.ToByteArray(), (uint)timestampSinceStart))
+                    //EncryptedSignature = ByteString.CopyFrom(Configuration.Hasher.GetEncryptedSignature(signature.ToByteArray(), (uint)timestampSinceStart))
+                    EncryptedSignature = ByteString.CopyFrom(_session.RpcClient.Hasher.GetEncryptedSignature(signature.ToByteArray(), (uint)timestampSinceStart))
                 }.ToByteString()
             };
 

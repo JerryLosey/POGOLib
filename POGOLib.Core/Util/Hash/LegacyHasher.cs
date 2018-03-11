@@ -19,6 +19,8 @@ namespace POGOLib.Official.Util.Hash
 
         public long Unknown25 { get; } = -1553869577012279119;
 
+        public string[] APIKeys { get { throw new NotImplementedException(); } }
+
         public async Task<HashData> GetHashDataAsync(RequestEnvelope requestEnvelope, Signature signature, byte[] locationBytes, byte[][] requestsBytes, byte[] serializedTicket)
         {
             await Task.Delay(0);
