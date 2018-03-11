@@ -16,7 +16,6 @@ namespace POGOLib.Official.Util.Hash
 
         long Unknown25 { get; }
         uint AppVersion { get; }
-        string[] APIKeys { get; }
 
         Task<HashData> GetHashDataAsync(RequestEnvelope requestEnvelope, Signature signature, byte[] locationBytes, byte[][] requestsBytes, byte[] serializedTicket);
 

@@ -36,6 +36,6 @@ namespace POGOLib.Official
         /// </summary>
         public static string HashEndpoint { get; set; } = "api/v159_1/hash";
 
-        public static Func<IHasher> HashBuilder = () => new LegacyHasher();
+        public static Func<IHasher> HashBuilder = () => Hasher;
     }
 }
